@@ -1,9 +1,9 @@
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
 
-class OdfRequestHandler(BaseHTTPRequestHandler):
+class OdfListener(BaseHTTPRequestHandler):
     def set_header(self):
-        self.send_response(200)
+        self.send_response_only(200)
         self.send_header("Cache-Control", "no-cache")
         self.send_header("X-HOVTP-Environment", self.headers["X-HOVTP-Environment"])
         self.send_header("X-HOVTP-Last-Serial-Number", self.headers["X-HOVTP-Last-Serial-Number"])
@@ -19,12 +19,14 @@ class OdfRequestHandler(BaseHTTPRequestHandler):
         post_data = self.rfile.read(content_length)
         if content_length > 0:
             print(post_data)
+            self.process_odf(post_data.decode("utf-8"))
+
+    def process_odf(self, odf : str):
+        pass
 
 
-def main():
-    host_name = "localhost"
-    server_port = 11111
-    web_server = HTTPServer((host_name, server_port), OdfRequestHandler)
+def run_server(request_handler_class, host_name, server_port):
+    web_server = HTTPServer((host_name, server_port), request_handler_class)
     print("Server started http://%s:%s" % (host_name, server_port))
 
     try:
@@ -34,7 +36,3 @@ def main():
 
     web_server.server_close()
     print("Server stopped.")
-
-
-if __name__ == "__main__":
-    main()
