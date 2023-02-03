@@ -11,13 +11,10 @@ server_port = 11111
 
 class OdfParser:
     current_result_odf = None
-
-    def __init__(self):
-        self.current_competitor_id = -1
-        self.competitor_has_changed = False
-        self.competitor_dict = {}
-        self.flag_dir = pathlib.Path("C:\\my\\flag\\dir")
-        self.flag_extension = ".png"
+    flag_dir = pathlib.Path("C:\\my\\flag\\dir")
+    flag_extension = ".png"
+    # self.current_competitor_id = -1
+    # self.competitor_has_changed = False
 
     @staticmethod
     def write_csv(csv_path: str, data: list):
@@ -70,9 +67,6 @@ class OdfParser:
         competitor_elem = elem.find("Competitor")
 
         composition = competitor_elem.find("./Composition")
-        # athlete_desc = competitor_elem.find("./Composition/Athlete/Description")
-        # if athlete_desc is None:
-        #     return
 
         if competitor_elem.attrib["Type"] == "T":
             if composition:  # for couples
@@ -92,6 +86,37 @@ class OdfParser:
             name = str(athlete.attrib["GivenName"]) + " " + str(athlete.attrib["FamilyName"])
             nation = str(athlete.attrib["Organisation"])
         return competitor_elem.attrib["Code"], name, nation
+
+    @staticmethod
+    def get_flag(nation : str) -> str:
+        return str(OdfParser.flag_dir / (nation + OdfParser.flag_extension)).replace("/", "\\")
+
+    @staticmethod
+    def get_current_result_entry(name="", nation="", element_score="", component_score="", deduction="", total_semgment_score="", total_score="", rank=""):
+        return {
+                    "Name": name,
+                    "Nat": nation,
+                    "Technical Score" : element_score,
+                    "Program Score": component_score,
+                    "Total Segment Score": total_semgment_score,
+                    "Total Score": total_score,
+                    "Total Rank": rank,
+                    "Deductions": deduction,
+                    "Flag": OdfParser.get_flag(nation)
+                }
+
+    @staticmethod
+    def get_result_entry(rank="", name="", nation="", points="", kp="", kr=""):
+        return {
+                "--": "--",
+                "FPl": rank,
+                "Name": name,
+                "Nat": nation,
+                "Pkt": points,
+                "KP": kp,
+                "KR": kr,
+                "Flag": OdfParser.get_flag(nation)
+            }
 
     # def process_current(self, root: ET.Element):
     #     # competitor_elem = root.find("./Competition/Result/Competitor")
@@ -121,25 +146,73 @@ class OdfParser:
             "KategorieName": sport_description.attrib["EventName"],
             "SegmentName": sport_description.attrib["SubEventName"]
         })
-        self.write_csv("event.csv", event_data)
+        self.write_csv("event_name.csv", event_data)
+        self.write_csv("resultl.csv", OdfParser.get_result_entry("","","","","",""))
+        self.write_csv("pat_current.csv", OdfParser.get_result_entry("","","","","",""))
+        self.write_csv("resultl.csv", OdfParser.get_result_entry("","","","","",""))
 
         start_list_data = []
+        start_group_dict = {}
         result_elems = root.findall("./Competition/Result")
         for result_elem in result_elems:
             _, name, nation = self.get_name_nation_from_result(result_elem)
-            if "StartOrder" in result_elem.attrib and "Rank" not in result_elem.attrib and "ResultType" not in result_elem.attrib:  # extract start list
-                start_list_data.append({
-                    "StartNummer": str(result_elem.attrib["StartOrder"]),
-                    "Name": name,
-                    "Nation": nation,
-                    "FLG": str(self.flag_dir / (nation + self.flag_extension))
-                })
+            if "StartOrder" not in result_elem.attrib:
+                continue
 
-        start_list_data = sorted(start_list_data, key=lambda data: int(data["StartNummer"]))
+            order_number = result_elem.attrib["StartOrder"]
+            if "ResultType" in result_elem.attrib and result_elem.attrib["ResultType"] == "IRM" and "IRM" in result_elem.attrib:
+                start_number = result_elem.attrib["IRM"]
+            else:
+                start_number = order_number
+
+            def get_start_list_entry(order_number, start_number, name, nation, group_number):
+                return {
+                    "--": order_number,
+                    "StN": start_number,
+                    "Name": name,
+                    "Nat": nation,
+                    "Flag": OdfParser.get_flag(nation),
+                    "Gruppe": group_number
+                }
+
+            group_number = 0
+            eue_elem = result_elem.find('./Competitor/EventUnitEntry[@Pos="EUE"][@Code="GROUP"]')
+            if eue_elem:
+                group_number = int(eue_elem.attrib["Value"])
+                if group_number not in start_group_dict:
+                    start_group_dict[group_number] = []
+
+            if "Rank" not in result_elem.attrib and "ResultType" not in result_elem.attrib:  # extract start list
+                start_list_data.append(get_start_list_entry(order_number, start_number, name, nation, group_number))
+
+            if group_number:
+                start_group_dict[group_number].append(get_start_list_entry(order_number, start_number, name, nation, group_number))
+
+        if start_list_data:
+            current_group_number = start_list_data[0]["Gruppe"]
+        else:
+            # generate empty dict to clear csv file
+            start_list_data.append(get_start_list_entry("", "", "", "", ""))
+            current_group_number = 0
+        start_list_data = sorted(start_list_data, key=lambda data: int(data["StN"]))
 
         # print(start_list_data)
         print("Num starter: " + str(len(start_list_data)))
-        self.write_csv("startlist.csv", start_list_data)
+        self.write_csv("startl.csv", start_list_data)
+        self.write_csv("pat_name1.csv", list(start_list_data[0]))
+        with open("pat_name.csv", "w", encoding="utf-8", newline="") as f:
+            f.write("%s, %s, %s," % (
+                start_list_data[0]["Name"],
+                start_list_data[0]["Nat"],
+                start_list_data[0]["Flag"])
+            )
+
+        for group_number in start_group_dict:
+            start_group_dict[group_number].sort(key=lambda data: int(data['--']))
+            self.write_csv(f"wg{str(group_number)}.csv", start_group_dict[group_number])
+
+            if group_number == current_group_number:
+                self.write_csv("wg.csv", start_group_dict[group_number])
 
     def process_cumulative_result(self, root: ET.Element):
         current_competitor_code = None
@@ -188,35 +261,33 @@ class OdfParser:
                             kr = result.attrib["Rank"]
                         else:
                             kr = "WD"
-                result_data.append({
-                    "FPl": str(result_elem.attrib[result_type]),
-                    "Name": name,
-                    "Nation": nation,
-                    "Pkt": points,
-                    "KP": kp,
-                    "KR": kr,
-                    "FLG": str(self.flag_dir / (nation + self.flag_extension))
-                })
+                result_data.append(OdfParser.get_result_entry(str(result_elem.attrib[result_type]), name, nation, points, kp, kr))
 
                 if code == current_competitor_code:
-                    current_result_data.append({
-                        "FPl": str(result_elem.attrib[result_type]),
-                        "Name": name,
-                        "Nation": nation,
-                        "Total": total_score,
-                        "Elements" : element_score,
-                        "Components": component_score,
-                        "Deductions": deduction,
-                        "FLG": str(self.flag_dir / (nation + self.flag_extension))
-                    })
+                    current_result_data.append(OdfParser.get_current_result_entry(name, nation, element_score, component_score, deduction, total_score, points, str(result_elem.attrib[result_type])))
 
-        print(result_data)
+        # print(result_data)
         print("Num results: " + str(len(result_data)))
 
-        print(current_result_data)
+        if not result_data:
+            result_data.append(OdfParser.get_result_entry())
+        if not current_result_data:
+            current_result_data.append(OdfParser.get_current_result_entry())
 
-        self.write_csv("result.csv", result_data)
-        self.write_csv("current_result.csv", current_result_data)
+        # print(current_result_data)
+
+        if "Total Rank" in current_result_data[0]:
+            previous_data = [data for data in result_data if str(int(data["FPl"]) - 1) == current_result_data[0]["Total Rank"]]
+            current_data  = [data for data in result_data if data["FPl"]               == current_result_data[0]["Total Rank"]]
+            next_data     = [data for data in result_data if str(int(data["FPl"]) + 1) == current_result_data[0]["Total Rank"]]
+
+            intermediate_result = [previous_data, current_data, next_data]
+            intermediate_result = list(map(lambda data: data if data else OdfParser.get_result_entry(), intermediate_result))
+            intermediate_result = list(map(lambda data: data[1:3], intermediate_result))
+            self.write_csv("act_pos.csv", intermediate_result)
+
+        self.write_csv("resultl.csv", result_data)
+        self.write_csv("pat_current.csv", current_result_data)
 
 
 class OdfListenerCsv(OdfListener):
