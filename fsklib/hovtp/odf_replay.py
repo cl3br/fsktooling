@@ -1,6 +1,7 @@
 import mysql.connector
 import getpass
 from fsklib.hovtp.base import OdfSender
+from fsklib.hovtp import parameter
 
 
 class OdfFsmReader:
@@ -23,13 +24,13 @@ class OdfFsmReader:
 
 
 def main():
-    sender = OdfSender("127.0.0.1", "11111")
+    sender = OdfSender(parameter.host_name, parameter.server_port)
 
-    reader = OdfFsmReader("gbb22_20221106_final", where="")
+    reader = OdfFsmReader("test", where="")
     for odf in reader:
-        import time
+        #import time
         #time.sleep(0.1)
-        print(f"Send {odf[2]}")
+        #print(f"Send {odf[2]}")
         sender.send_odf(odf[1], odf[2])
 
 

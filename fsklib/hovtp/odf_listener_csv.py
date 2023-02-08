@@ -1,27 +1,28 @@
 import xml.etree.ElementTree as ET
 import csv
-import pathlib
+from pathlib import Path
 import traceback
 
 from fsklib.hovtp.base import OdfListener, run_server
-
-host_name = "127.0.0.1"
-server_port = 11111
-
+from fsklib.hovtp import parameter
 
 class OdfParser:
     current_result_odf = None
-    flag_dir = pathlib.Path("C:\\my\\flag\\dir")
-    flag_extension = ".png"
+    flag_dir = parameter.flag_folder
+    flag_extension = parameter.flag_extension
+    csv_dir = parameter.csv_folder
     # self.current_competitor_id = -1
     # self.competitor_has_changed = False
 
     @staticmethod
-    def write_csv(csv_path: str, data: list):
-        if not csv_path or not data:
+    def write_csv(csv_file_name: str, data: list):
+        if not csv_file_name or not data:
             return
 
-        with open(csv_path, "w", encoding="utf-8", newline="") as f:
+        if not OdfParser.csv_dir.is_dir():
+            OdfParser.csv_dir.mkdir()
+
+        with open(OdfParser.csv_dir / csv_file_name, "w", encoding="utf-8", newline="") as f:
             header = data[0].keys()
             w = csv.DictWriter(f, header)
             w.writeheader()
@@ -137,7 +138,7 @@ class OdfParser:
     #     if result_elem:
     #         self.current_result_elem = result_elem
 
-        return
+    #    return
 
     def process_result(self, root: ET.Element):
         event_data = []
@@ -199,7 +200,7 @@ class OdfParser:
         # print(start_list_data)
         self.write_csv("startl.csv", start_list_data)
         self.write_csv("pat_name1.csv", list(start_list_data[0:1]))
-        with open("pat_name.csv", "w", encoding="utf-8", newline="") as f:
+        with open(OdfParser.csv_dir / "pat_name.csv", "w", encoding="utf-8", newline="") as f:
             f.write("%s,%s,%s," % (
                 start_list_data[0]["Name"],
                 start_list_data[0]["Nat"],
@@ -303,11 +304,11 @@ class OdfListenerCsv(OdfListener):
 
 
 def main():
-    run_server(OdfListenerCsv, host_name, server_port)
+    run_server(OdfListenerCsv, parameter.host_name, parameter.server_port)
 
 
 def test():
-    folder = pathlib.Path("C:\\SwissTiming\\OVR\\FSManager\\Export\\GBB2022\\ODF\\Men\\Free Skating")
+    folder = Path("C:\\SwissTiming\\OVR\\FSManager\\Export\\GBB2022\\ODF\\Men\\Free Skating")
 
     parser = OdfParser()
 
