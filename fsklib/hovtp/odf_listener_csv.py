@@ -227,7 +227,7 @@ class OdfParser:
                     score = result.find(f'./ExtendedResults/ExtendedResult[@Code="{code}"][@Pos="TOT"]')
                     return score.attrib["Value"] if score is not None else ""
 
-                total_score = get_score(result, "LIVE_SCORE")
+                total_score = result.attrib["Result"] if "Result" in result.attrib else ""
                 element_score = get_score(result, "ELEMENT")
                 component_score = get_score(result, "COMPONENT")
                 deduction = get_score(result, "DEDUCTION")
