@@ -15,7 +15,7 @@ class OdfParser:
     # self.competitor_has_changed = False
 
     @staticmethod
-    def write_csv(csv_file_name: str, data: list):
+    def write_csv(csv_file_name: str, data: list, write_header=True):
         if not csv_file_name or not data:
             return
 
@@ -25,7 +25,8 @@ class OdfParser:
         with open(OdfParser.csv_dir / csv_file_name, "w", encoding="utf-8", newline="") as f:
             header = data[0].keys()
             w = csv.DictWriter(f, header)
-            w.writeheader()
+            if write_header:
+                w.writeheader()
             w.writerows(data)
 
     def process_odf(self, odf: str):
@@ -90,6 +91,8 @@ class OdfParser:
 
     @staticmethod
     def get_flag(nation : str) -> str:
+        if not nation:
+            return ""
         return str(OdfParser.flag_dir / (nation + OdfParser.flag_extension)).replace("/", "\\")
 
     @staticmethod
@@ -143,10 +146,14 @@ class OdfParser:
     def process_result(self, root: ET.Element):
         event_data = []
         sport_description = root.find("./Competition/ExtendedInfos/SportDescription")
-        event_data.append({
-            "KategorieName": sport_description.attrib["EventName"],
-            "SegmentName": sport_description.attrib["SubEventName"]
-        })
+        #event_data.append({
+        #    "KategorieName": sport_description.attrib["EventName"],
+        #    "SegmentName": sport_description.attrib["SubEventName"]
+        #})
+        event_data.append({"--" : "--",
+                           "Event_name" : sport_description.attrib["EventName"] +
+                                          " - " +
+                                          sport_description.attrib["SubEventName"]})
         self.write_csv("event_name.csv", event_data)
         # self.write_csv("resultl.csv", [OdfParser.get_result_entry("","","","","","")])
         # self.write_csv("pat_current.csv", [OdfParser.get_result_entry("","","","","","")])
@@ -209,10 +216,10 @@ class OdfParser:
 
         for group_number in start_group_dict:
             start_group_dict[group_number].sort(key=lambda data: int(data['--']))
-            self.write_csv(f"wg{str(group_number)}.csv", start_group_dict[group_number])
+            self.write_csv(f"wg{str(group_number)}-startl.csv", start_group_dict[group_number], False)
 
             if group_number == current_group_number:
-                self.write_csv("wg.csv", start_group_dict[group_number])
+                self.write_csv("wg-startl.csv", start_group_dict[group_number], False)
 
     def process_cumulative_result(self, root: ET.Element):
         current_competitor_code = None
