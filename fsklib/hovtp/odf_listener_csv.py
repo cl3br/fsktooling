@@ -155,6 +155,8 @@ class OdfParser:
                                           " - " +
                                           sport_description.attrib["SubEventName"]})
         self.write_csv("event_name.csv", event_data)
+        with open(OdfParser.csv_dir / "event.csv", "w", encoding="utf-8", newline="") as f:
+            f.write(sport_description.attrib["EventName"] + " " + sport_description.attrib["SubEventName"])
         # self.write_csv("resultl.csv", [OdfParser.get_result_entry("","","","","","")])
         # self.write_csv("pat_current.csv", [OdfParser.get_result_entry("","","","","","")])
 
