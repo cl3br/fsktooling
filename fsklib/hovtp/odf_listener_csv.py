@@ -8,6 +8,8 @@ from fsklib.hovtp import parameter
 
 class OdfParser:
     current_result_odf = None
+    current_event_name = ""
+    leader_result_data = None
     flag_dir = parameter.flag_folder
     flag_extension = parameter.flag_extension
     csv_dir = parameter.csv_folder
@@ -41,6 +43,7 @@ class OdfParser:
         if doc_type == "DT_CURRENT":
             # store current result
             try:
+                self.process_current(root)
                 if "SCORE_DONE" in odf:
                     result_elem = root.find("./Competition/Result")
                     if result_elem is not None:
@@ -122,26 +125,57 @@ class OdfParser:
                 "Flag": OdfParser.get_flag(nation)
             }
 
-    # def process_current(self, root: ET.Element):
-    #     # competitor_elem = root.find("./Competition/Result/Competitor")
-    #
-    #     # if competitor_elem and \
-    #     #     "Code" in competitor_elem.attrib and \
-    #     #     self.current_competitor_id != competitor_elem.attrib["Code"]:
-    #     #     self.current_competitor_id = competitor_elem.attrib["Code"]
-    #     #     self.competitor_has_changed = True
-    #
-    #     # score is done
-    #     score_done_elem = root.find(
-    #         "./Competition/ExtendedInfos/ExtendedInfo[@Type='DISPLAY']/Extension[@Code='SCORE_DONE']")
-    #     if not score_done_elem:
-    #         return
-    #
-    #     result_elem = root.find("./Competition/Result")
-    #     if result_elem:
-    #         self.current_result_elem = result_elem
+    def process_current(self, root: ET.Element):
+        # read live score (technial value only)
+        live_score = root.find('./Competition/Result/ExtendedResults/ExtendedResult[@Code="ELEMENT"][@Pos="TOT"]')
+        live_score_value = ""
+        if live_score is not None:
+            live_score_value = live_score.attrib["Value"]
+        live_score_base = root.find('./Competition/Result/ExtendedResults/ExtendedResult/Extension[@Code="BASE_TOT"]')
+        live_score_base_value = ""
+        if live_score_base is not None:
+            live_score_base_value = live_score_base.attrib["Value"]
 
-    #    return
+        # convert GOE based on total base value and current score to color
+        color = ""
+        if len(live_score_value) > 0 and len(live_score_base_value) > 0:
+            score = float(live_score_value)
+            base = float(live_score_base_value)
+            diff = score - base
+            if abs(diff) < 0.05 * base:
+                color = "yellow" # almost same as base
+            elif diff > 0:
+                color = "green"
+            else:
+                color = "red"
+
+        # not useful -> follwoing code gives the total combined score (instead of technical score) of current leader
+        # read the best score so far
+        # to_beat = root.find(
+        #     './Competition/ExtendedInfos/ExtendedInfo[@Type="DISPLAY"]/Extension[@Code="TO_BEAT"][@Pos="1"]')
+        # to_beat_value = ""
+        # if to_beat is not None:
+        #     to_beat_value = to_beat.attrib["Value"]
+
+        if live_score_value:
+            live_score = {
+                "LiveScore" : live_score_value,
+                "LiveScoreBase" : live_score_base_value,
+                "GOEColor" : color,
+                "LeaderScore" : "",
+                "LeaderName" : "",
+                "LeaderNat" : "",
+                "LeaderFlag" : "" 
+            }
+            if OdfParser.leader_result_data:
+                live_score.update({
+                    "LeaderScore" : OdfParser.leader_result_data["Technical Score"],
+                    "LeaderName" : OdfParser.leader_result_data["Name"],
+                    "LeaderNat" : OdfParser.leader_result_data["Nat"],
+                    "LeaderFlag" : OdfParser.leader_result_data["Flag"]
+                })
+            self.write_csv("live_score.csv", [live_score])
+        return
 
     def process_result(self, root: ET.Element):
         event_data = []
@@ -150,15 +184,21 @@ class OdfParser:
         #    "KategorieName": sport_description.attrib["EventName"],
         #    "SegmentName": sport_description.attrib["SubEventName"]
         #})
+
+        event_name = sport_description.attrib["EventName"] + " - " + sport_description.attrib["SubEventName"]
         event_data.append({"--" : "--",
-                           "Event_name" : sport_description.attrib["EventName"] +
-                                          " - " +
-                                          sport_description.attrib["SubEventName"]})
+                           "Event_name" : event_name })
         self.write_csv("event_name.csv", event_data)
         with open(OdfParser.csv_dir / "event.csv", "w", encoding="utf-8", newline="") as f:
             f.write(sport_description.attrib["EventName"] + " " + sport_description.attrib["SubEventName"])
         # self.write_csv("resultl.csv", [OdfParser.get_result_entry("","","","","","")])
         # self.write_csv("pat_current.csv", [OdfParser.get_result_entry("","","","","","")])
+
+        # reset because of new event
+        if OdfParser.current_event_name != event_name:
+            OdfParser.leader_result_data = OdfParser.get_current_result_entry()
+
+        OdfParser.current_event_name = event_name
 
         start_list_data = []
         start_group_dict = {}
@@ -245,6 +285,7 @@ class OdfParser:
         current_result_data = []
         result_data = []
         result_elems = root.findall("./Competition/Result")
+        current_rank = 0
         for result_elem in result_elems:
             code, name, nation = self.get_name_nation_from_result(result_elem)
             if "Rank" in result_elem.attrib or "IRM" in result_elem.attrib:  # extract final result
@@ -270,10 +311,21 @@ class OdfParser:
                             kr = result.attrib["Rank"]
                         else:
                             kr = "WD"
-                result_data.append(OdfParser.get_result_entry(str(result_elem.attrib[result_type]), name, nation, points, kp, kr))
+                
+                rank = str(result_elem.attrib[result_type])
+                result_data.append(OdfParser.get_result_entry(rank, name, nation, points, kp, kr))
 
                 if code == current_competitor_code:
-                    current_result_data.append(OdfParser.get_current_result_entry(name, nation, element_score, component_score, deduction, total_score, points, str(result_elem.attrib[result_type])))
+                    current_result = OdfParser.get_current_result_entry(name, nation, element_score, component_score, deduction, total_score, points, rank)
+                    current_result_data.append(current_result)
+                    
+                    try:
+                        current_rank = int(rank)
+                    except:
+                        current_rank = 0
+
+                    if current_rank == 1:
+                        OdfParser.leader_result_data = current_result
 
         print("Num results: " + str(len(result_data)))
         # print(result_data)
@@ -285,19 +337,13 @@ class OdfParser:
 
         # print(current_result_data)
 
-        if "Total Rank" in current_result_data[0]:
-            try:
-                current_rank = int(current_result_data[0]["Total Rank"])
-            except:
-                current_rank = 0
+        if current_rank:
+            intermediate_result = []
+            for rank in range(current_rank-1, current_rank+2):
+                intermediate_result.append(next(filter(lambda data: data["FPl"] == str(rank), result_data), self.get_result_entry()))
 
-            if current_rank:
-                intermediate_result = []
-                for rank in range(current_rank-1, current_rank+2):
-                    intermediate_result.append(next(filter(lambda data: data["FPl"] == str(rank), result_data), self.get_result_entry()))
-
-                #intermediate_result = list(map(lambda data: data[1:3], intermediate_result))
-                self.write_csv("act_pos.csv", intermediate_result)
+            #intermediate_result = list(map(lambda data: data[1:3], intermediate_result))
+            self.write_csv("act_pos.csv", intermediate_result)
 
         self.write_csv("resultl.csv", result_data)
         self.write_csv("pat_current.csv", current_result_data)
