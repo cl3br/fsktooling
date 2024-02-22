@@ -159,20 +159,42 @@ class OdfParser:
 
         if live_score_value:
             live_score = {
-                "LiveScore" : live_score_value,
-                "LiveScoreBase" : live_score_base_value,
-                "GOEColor" : color,
-                "LeaderScore" : "",
-                "LeaderName" : "",
-                "LeaderNat" : "",
-                "LeaderFlag" : "" 
+                "LiveScore": live_score_value,
+                "LiveScoreBase": live_score_base_value,
+                "GOEColor": color,
+                "GOEColorFile": OdfParser.flag_dir / (color + ".png"),
+                "ElementName": "",
+                "ElementAbbr": "",
+                "ElementPoints": "",
+                "LeaderRank": "",
+                "LeaderScore": "",
+                "LeaderName": "",
+                "LeaderNat": "",
+                "LeaderFlag": "" 
             }
-            if OdfParser.leader_result_data:
+            
+            max_element = 0
+            for element_score in root.findall('./Competition/Result/ExtendedResults/ExtendedResult[@Code="ELEMENT"]'):
+                try:
+                    max_element = max(max_element, int(element_score.attrib["Pos"]))
+                except:
+                    continue
+
+            if max_element > 0:
+                element_score = root.find(f'./Competition/Result/ExtendedResults/ExtendedResult[@Code="ELEMENT"][@Pos="{max_element}"]')
                 live_score.update({
-                    "LeaderScore" : OdfParser.leader_result_data["Technical Score"],
-                    "LeaderName" : OdfParser.leader_result_data["Name"],
-                    "LeaderNat" : OdfParser.leader_result_data["Nat"],
-                    "LeaderFlag" : OdfParser.leader_result_data["Flag"]
+                    "ElementName": element_score.find('./Extension[@Code="ELEMENT_DESC"]').attrib["Value"],
+                    "ElementAbbr": element_score.find('./Extension[@Code="ELEMENT_CODE"]').attrib["Value"],
+                    "ElementPoints": element_score.attrib["Value"]
+                })
+                
+            if OdfParser.leader_result_data and OdfParser.leader_result_data["Name"]:
+                live_score.update({
+                    "LeaderRank": "1",
+                    "LeaderScore": OdfParser.leader_result_data["Technical Score"],
+                    "LeaderName": OdfParser.leader_result_data["Name"],
+                    "LeaderNat": OdfParser.leader_result_data["Nat"],
+                    "LeaderFlag": OdfParser.leader_result_data["Flag"]
                 })
             self.write_csv("live_score.csv", [live_score])
         return
