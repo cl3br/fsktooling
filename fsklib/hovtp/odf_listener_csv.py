@@ -263,9 +263,11 @@ class OdfParser:
             start_list_data = sorted(start_list_data, key=lambda data: int(data["StN"]))
             current_group_number = start_list_data[0]["Gruppe"]
         else:
-            # generate empty dict to clear csv file
-            start_list_data.append(get_start_list_entry("", "", "", "", ""))
             current_group_number = 0
+
+        for i in range(len(start_list_data), parameter.max_category_lenght):
+            # fill csv with empty lines
+            start_list_data.append(get_start_list_entry("", "", "", "", ""))
 
         print("Num starter: " + str(len(start_list_data)))
         # print(start_list_data)
@@ -280,6 +282,10 @@ class OdfParser:
 
         for group_number in start_group_dict:
             start_group_dict[group_number].sort(key=lambda data: int(data['--']))
+
+            for i in range(len(start_group_dict[group_number]), parameter.max_group_length):
+                start_group_dict[group_number].append(get_start_list_entry("", "", "", "", ""))
+
             self.write_csv(f"wg{str(group_number)}-startl.csv", start_group_dict[group_number], False)
 
             if group_number == current_group_number:
@@ -352,7 +358,7 @@ class OdfParser:
         print("Num results: " + str(len(result_data)))
         # print(result_data)
 
-        if not result_data:
+        for i in range(len(result_data), parameter.max_category_lenght):
             result_data.append(OdfParser.get_result_entry())
         if not current_result_data:
             current_result_data.append(OdfParser.get_current_result_entry())
