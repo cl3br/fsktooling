@@ -142,7 +142,7 @@ class OdfParser:
             score = float(live_score_value)
             base = float(live_score_base_value)
             diff = score - base
-            if abs(diff) < 0.05 * base:
+            if abs(diff) < parameter.color_threshold * base:
                 color = "yellow" # almost same as base
             elif diff > 0:
                 color = "green"

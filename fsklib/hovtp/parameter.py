@@ -7,3 +7,4 @@ flag_folder = Path("C:\\my\\flag\\dir")
 flag_extension = ".png"
 max_category_lenght = 40
 max_group_length = 8
+color_threshold = 0.001
