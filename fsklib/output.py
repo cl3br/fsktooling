@@ -57,11 +57,16 @@ class ParticipantCsvOutput(OutputBase):
     @staticmethod
     # def get_participant_dict(participant: model.ParticipantBase, segment: Union[model.Segment, None], start_number: Union[int, None]):
     def get_participant_dict(participant: model.ParticipantBase, segment = None, start_number = None):
+        cat_level = ""
+        if isinstance(participant.cat.level, str):
+            cat_level = participant.cat.level
+        if isinstance(participant.cat.level, model.CategoryLevel):
+            cat_level = participant.cat.level.CALC()
         output = {
                     'Kategorie-Name' : participant.cat.name,
                     'Kategorie-Typ' : participant.cat.type.CALC(),
                     'Kategorie-Geschlecht' : participant.cat.gender.CALC(),
-                    'Kategorie-Level' : participant.cat.level.CALC(),
+                    'Kategorie-Level' : cat_level,
                     'Segment-Name' : None,
                     'Segment-Abk.' : None,
                     'Segment-Typ' : None,

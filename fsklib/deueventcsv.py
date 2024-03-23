@@ -26,7 +26,7 @@ class DeuMeldeformularCsv:
     def __init__(self) -> None:
         self.unknown_ids = { '888888' : 0, '999999' : 0 }
 
-    def convert_date(self, d: str) -> date:
+    def _convert_date(self, d: str) -> date:
         if not d:
             return date.today()
         try:
@@ -40,6 +40,65 @@ class DeuMeldeformularCsv:
                 except:
                     print(f"Unable to parse participant birthday '{d}'")
                     return date.today()
+
+    def _convert_categories(self, input_categories: str) -> Dict[str, model.Category]:
+        # read categories
+        try:
+            categories_dict: Dict[str, model.Category] = {} # cat_name -> category
+            category_numbers: Dict[str, int] = {} # str(cat_type + cat_level + cat_gender) -> number
+            cats_file = open(input_categories, 'r')
+            cat_reader = csv.DictReader(cats_file)
+            for cat_dict in cat_reader:
+                cat_name = cat_dict['Wettbewerb/Prüfung'].strip()
+                cat_deu_type = cat_dict['Disziplin'].strip()
+                cat_deu_level = cat_dict['Kategorie'].strip()
+
+                cat_type = model.CategoryType.from_value(cat_deu_type, model.DataSource.DEU)
+                cat_gender = DeuMeldeformularCsv.deu_category_to_gender[cat_deu_type] if cat_deu_type in DeuMeldeformularCsv.deu_category_to_gender else model.Gender.FEMALE
+                cat_level = model.CategoryLevel.from_value(cat_deu_level, model.DataSource.DEU)
+                if cat_level == model.CategoryLevel.NOTDEFINED:
+                    cat_level = model.CategoryLevel.NOVICE_BASIC
+
+                if not cat_level:
+                    cat_level = model.CategoryLevel.from_value(cat_deu_level, model.DataSource.ODF)
+                if not cat_level:
+                    cat_level = model.CategoryLevel.from_value(cat_deu_level, model.DataSource.ISU)
+
+                # add custom level
+                if not cat_level and cat_deu_level and len(cat_deu_level) <= 6:
+                    cat_level = cat_deu_level.upper()
+                    print("Warning: Unable to find category level for following category: '%s'|'%s'|'%s'" % (cat_name, cat_deu_type, cat_deu_level))
+                    print("  ->  The level '%s' must be specified as custom level with a setup.xml in FSM." % cat_level)
+
+                # guess category level from category name
+                if not cat_level:
+                    for level in model.CategoryLevel:
+                        if str(cat_name).startswith(level.ISU()):
+                            cat_level = level
+
+                if not cat_type or not cat_gender or not cat_level:
+                    print("Warning: Unable to convert following category: '%s'|'%s'|'%s'" % (cat_name, cat_deu_type, cat_deu_level))
+                    continue
+
+                cat_id = cat_type.ODF()
+                if isinstance(cat_level, model.CategoryLevel):
+                    cat_id += cat_level.ODF()
+                elif isinstance(cat_level, str):
+                    cat_id += cat_level
+                cat_id += cat_gender.ODF()
+
+                if cat_id in category_numbers:
+                    category_numbers[cat_id] += 1
+                else:
+                    category_numbers[cat_id] = 0
+                categories_dict[cat_name] = model.Category(cat_name, cat_type, cat_level, cat_gender, category_numbers[cat_id])
+        except Exception as e:
+            print('Error while converting categories.')
+            print(e)
+        finally:
+            cats_file.close()
+
+        return categories_dict
 
     def convert(self, input_participants: str, input_clubs: str, input_categories: str, input_event_info: str, outputs: List[
         output.OutputBase]):
@@ -86,45 +145,7 @@ class DeuMeldeformularCsv:
         finally:
             clubs_file.close()
 
-        # read categories
-        try:
-            categories_dict: Dict[str, model.Category] = {} # cat_name -> category
-            category_numbers: Dict[str, int] = {} # str(cat_type + cat_level + cat_gender) -> number
-            cats_file = open(input_categories, 'r')
-            cat_reader = csv.DictReader(cats_file)
-            for cat_dict in cat_reader:
-                cat_name = cat_dict['Wettbewerb/Prüfung'].strip()
-                cat_deu_type = cat_dict['Disziplin'].strip()
-                cat_deu_level = cat_dict['Kategorie'].strip()
-
-                cat_type = model.CategoryType.from_value(cat_deu_type, model.DataSource.DEU)
-                cat_gender = DeuMeldeformularCsv.deu_category_to_gender[cat_deu_type] if cat_deu_type in DeuMeldeformularCsv.deu_category_to_gender else model.Gender.FEMALE
-                cat_level = model.CategoryLevel.from_value(cat_deu_level, model.DataSource.DEU)
-
-                if not cat_type or not cat_gender or not cat_level:
-                    print('Warning: Unable to convert category following %s|%s|%s' % (cat_name, cat_name, cat_level))
-                    continue
-
-                if str(cat_name).startswith("Basic Novice"):
-                    cat_level = model.CategoryLevel.NOVICE_BASIC
-                elif str(cat_name).startswith("Intermediate Novice"):
-                    cat_level = model.CategoryLevel.NOVICE_INTERMEDIATE
-
-                if cat_level == model.CategoryLevel.NOTDEFINED:
-                    cat_level = model.CategoryLevel.NOVICE_ADVANCED
-
-                cat_id = cat_type.ODF() + cat_level.ODF() + cat_gender.ODF()
-                if cat_id in category_numbers:
-                    category_numbers[cat_id] += 1
-                else:
-                    category_numbers[cat_id] = 0
-                categories_dict[cat_name] = model.Category(cat_name, cat_type, cat_level, cat_gender, category_numbers[cat_id])
-        except Exception as e:
-            print('Error while converting categories.')
-            print(e)
-        finally:
-            cats_file.close()
-
+        categories_dict = self._convert_categories(input_categories)
 
         try:
             pars_file = open(input_participants, 'r')
@@ -164,7 +185,7 @@ class DeuMeldeformularCsv:
                 par_family_name = athlete['Name'].strip()
                 par_first_name = athlete['Vorname'].strip()
                 par_bday = athlete['Geb. Datum'].strip()
-                par_bday = self.convert_date(par_bday)
+                par_bday = self._convert_date(par_bday)
                 par_club_abbr = athlete['Vereinskürzel'].strip()
                 par_role = athlete['Rolle'].strip()
                 par_role = model.Role.from_value(par_role if par_role else 'TN', model.DataSource.DEU)
@@ -188,7 +209,6 @@ class DeuMeldeformularCsv:
 
                 cat_type = cat.type
                 cat_gender = cat.gender
-                cat_level = cat.level
 
                 if not (par_first_name and par_family_name) and not par_team_name:
                     print('Warning: Athlete name or team name is missing.')
@@ -335,4 +355,3 @@ if __name__ == '__main__':
                                            ))
 else:
     print = logging.info
-

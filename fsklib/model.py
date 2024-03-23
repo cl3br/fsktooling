@@ -1,6 +1,6 @@
 import datetime
 from enum import Enum, IntEnum
-from typing import List
+from typing import List, Union
 
 class Club:
     def __init__(self) -> None:
@@ -18,6 +18,7 @@ class DataSource(IntEnum):
     CALC = 1
     ODF =  2
     DEU =  3
+    ISU =  4
 
 
 class DataEnum(Enum):
@@ -27,6 +28,7 @@ class DataEnum(Enum):
         for member in cls.__members__.values():
             if member.value[data_source] == value:
                 return member
+        return None
 
     @staticmethod
     def check_data_source(data_source: DataSource):
@@ -47,6 +49,8 @@ class DataEnum(Enum):
         return self._get_value(DataSource.ODF)
     def DEU(self) -> str:
         return self._get_value(DataSource.DEU)
+    def ISU(self) -> str:
+        return self._get_value(DataSource.ISU)
 
 class Gender(DataEnum):
     MALE = (0, 'M', 'M')
@@ -55,7 +59,7 @@ class Gender(DataEnum):
 
     @staticmethod
     def check_data_source(data_source: DataSource):
-        if data_source == DataSource.DEU:
+        if data_source in [DataSource.DEU, DataSource.ISU]:
             raise Exception("Invalid input data source.")
 
 class Person:
@@ -83,7 +87,7 @@ class SegmentType(DataEnum):
 
     @staticmethod
     def check_data_source(data_source: DataSource):
-        if data_source == DataSource.DEU:
+        if data_source in [DataSource.DEU, DataSource.ISU]:
             raise Exception("Invalid input data source.")
 
 class Segment:
@@ -93,12 +97,12 @@ class Segment:
         self.type = type
 
 class CategoryType(DataEnum):
-    MEN = (0, 'S', 'SINGLES', 'Herren')
-    WOMEN = (1, 'S', 'SINGLES', 'Damen')
-    SINGLES = (None, 'S', 'SINGLES', 'Einzellaufen')
-    PAIRS = (2, 'P', 'PAIRS', 'Paarlaufen')
-    ICEDANCE = (3, 'D', 'ICEDANCE', 'Eistanzen')
-    SYNCHRON = (4, 'T', 'SYNCHRON', 'Synchron')
+    MEN = (0, 'S', 'SINGLES', 'Herren', 'Men')
+    WOMEN = (1, 'S', 'SINGLES', 'Damen', 'Women')
+    SINGLES = (None, 'S', 'SINGLES', 'Einzellaufen', 'Single Skating')
+    PAIRS = (2, 'P', 'PAIRS', 'Paarlaufen', 'Pair Skating')
+    ICEDANCE = (3, 'D', 'ICEDANCE', 'Eistanzen', 'Ice Dance')
+    SYNCHRON = (4, 'T', 'SYNCHRON', 'Synchron', 'Synchronized Skating')
 
     def to_gender(self):
         if self == CategoryType.WOMEN:
@@ -111,24 +115,24 @@ class CategoryType(DataEnum):
             raise Exception(f"Unable to determine gender for category type '{self}'.")
 
 class CategoryLevel(DataEnum):
-    SENIOR = (0, 'S', '', 'Meisterklasse')
-    JUNIOR = (1, 'J', 'JUNIOR', 'Juniorenklasse')
-    JUGEND = (1, 'J', 'JUNIOR', 'Jugendklasse')
-    NOVICE_ADVANCED = (3, 'V', 'ADVNOV', 'Nachwuchsklasse')
-    NOVICE_INTERMEDIATE = (4, 'I', 'INTNOV', 'Nachwuchsklasse')
-    NOVICE_BASIC = (2, 'R', 'BASNOV', 'Nachwuchsklasse')
-    ADULT = (5, 'O', 'ADULT', 'Adult')
-    NOTDEFINED = (None, 'O', '', 'nicht definiert')
-    MIXEDAGE = (6, 'O', 'MIXAGE', 'nicht definiert')
-    ELITE12 = (7, 'O', 'SENELI', 'Adult')
-    MASTERS = (8, 'O', 'MASTER', 'Adult')
-    OTHER = (None, 'O', '', 'Sonstige Wettbewerbe')
+    SENIOR = (0, 'S', '', 'Meisterklasse', 'Senior')
+    JUNIOR = (1, 'J', 'JUNIOR', 'Juniorenklasse', 'Junior')
+    JUGEND = (1, 'J', 'JUNIOR', 'Jugendklasse', None)
+    NOVICE_ADVANCED = (3, 'V', 'ADVNOV', 'Nachwuchsklasse', 'Advanced Novice')
+    NOVICE_INTERMEDIATE = (4, 'I', 'INTNOV', 'Nachwuchsklasse', 'Intermediate Novice')
+    NOVICE_BASIC = (2, 'R', 'BASNOV', 'Nachwuchsklasse', 'Basic Novice')
+    ADULT = (5, 'O', 'ADULT', 'Adult', 'Adult')
+    NOTDEFINED = (None, 'O', '', 'nicht definiert', None)
+    MIXEDAGE = (6, 'O', 'MIXAGE', 'nicht definiert', 'Mixed Age')
+    ELITE12 = (7, 'O', 'SENELI', 'Adult', 'Elite Masters')
+    MASTERS = (8, 'O', 'MASTER', 'Adult', 'Masters')
+    OTHER = (None, 'O', '', 'Sonstige Wettbewerbe', None)
 
     def is_ISU_category(self) -> bool:
-        return self.FSM() is not None
+        return self.ISU() is not None
 
 class Category:
-    def __init__(self, name: str, category_type: CategoryType, category_level: CategoryLevel, gender: Gender, number: int) -> None:
+    def __init__(self, name: str, category_type: CategoryType, category_level: Union[CategoryLevel,str], gender: Gender, number: int) -> None:
         self.name = name
         self.type = category_type
         self.level = category_level
