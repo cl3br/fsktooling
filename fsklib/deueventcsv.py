@@ -65,7 +65,11 @@ class DeuMeldeformularCsv:
                     cat_level = model.CategoryLevel.from_value(cat_deu_level, model.DataSource.ISU)
 
                 # add custom level
-                if not cat_level and cat_deu_level and len(cat_deu_level) <= 6:
+                if (not cat_level
+                    and cat_deu_level
+                    and len(cat_deu_level) <= 6
+                    and cat_deu_level.isascii()
+                    and cat_deu_level.isalpha()):
                     cat_level = cat_deu_level.upper()
                     print("Warning: Unable to find category level for following category: '%s'|'%s'|'%s'" % (cat_name, cat_deu_type, cat_deu_level))
                     print("  ->  The level '%s' must be specified as custom level with a setup.xml in FSM." % cat_level)
