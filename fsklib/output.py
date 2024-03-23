@@ -1,7 +1,8 @@
 import csv
-from datetime import date, datetime
+from datetime import datetime
 import os, shutil
 import pathlib
+from typing import Dict, List, Set
 import xml.etree.ElementTree as ET
 from xml.dom import minidom
 
@@ -15,7 +16,7 @@ class OutputBase:
         self.path = pathlib.Path(file_path)
     def add_event_info(self, competition_info: model.Competition) -> None:
         raise NotImplementedError()
-    def add_person(self, model: model.Person) -> None:
+    def add_person(self, person: model.Person) -> None:
         raise NotImplementedError()
     def add_participant(self, participant: model.ParticipantBase) -> None:
         raise NotImplementedError()
@@ -26,7 +27,7 @@ class OutputBase:
 class PersonCsvOutput(OutputBase):
     def __init__(self, file_path: pathlib.Path):
         super().__init__(file_path)
-        self.persons = list()
+        self.persons: List[List[str]] = []
 
     def add_event_info(self, competition_info: model.Competition) -> None:
         pass
@@ -52,11 +53,11 @@ class PersonCsvOutput(OutputBase):
 class ParticipantCsvOutput(OutputBase):
     def __init__(self, file_path: pathlib.Path) -> None:
         super().__init__(file_path)
-        self.participant_csv_data = []
+        self.participant_csv_data: List[Dict[str, str]] = []
 
     @staticmethod
     # def get_participant_dict(participant: model.ParticipantBase, segment: Union[model.Segment, None], start_number: Union[int, None]):
-    def get_participant_dict(participant: model.ParticipantBase, segment = None, start_number = None):
+    def get_participant_dict(participant: model.ParticipantBase, segment = None, start_number = None) -> Dict[str, str]:
         cat_level = ""
         if isinstance(participant.cat.level, str):
             cat_level = participant.cat.level
@@ -92,7 +93,7 @@ class ParticipantCsvOutput(OutputBase):
         if start_number:
             output['Startnummer'] = start_number
 
-        if(type(participant) is model.ParticipantSingle):
+        if isinstance(participant, model.ParticipantSingle):
             output['Id'] = participant.person.id
             output['Vorname'] = participant.person.first_name
             output['Name'] = participant.person.family_name
@@ -100,7 +101,7 @@ class ParticipantCsvOutput(OutputBase):
             output['Nation'] = participant.person.club.nation
             output['Club-Name'] = participant.person.club.name
             output['Club-Abk.'] = participant.person.club.abbr
-        elif(type(participant) is model.ParticipantCouple):
+        elif isinstance(participant, model.ParticipantCouple):
             p1 = participant.couple.partner_1
             p2 = participant.couple.partner_2
             output['Id'] = participant.couple.partner_1.id
@@ -130,7 +131,7 @@ class ParticipantCsvOutput(OutputBase):
             else:
                 par_team_nation = p1.club.nation + " / " + p2.club.nation
             output['Nation'] = par_team_nation
-        elif(type(participant) is model.ParticipantTeam):
+        elif isinstance(participant, model.ParticipantTeam):
             output['Team-Name'] = participant.team.name
             output['Nation'] = participant.team.club.nation
             output['Club-Name'] = participant.team.club.name
@@ -143,16 +144,16 @@ class ParticipantCsvOutput(OutputBase):
     def add_event_info(self, competition_info: model.Competition) -> None:
         pass
 
-    def add_participant(self, participant: model.ParticipantBase):
+    def add_participant(self, participant: model.ParticipantBase) -> None:
         self.participant_csv_data.append(self.get_participant_dict(participant))
 
-    def add_participant_with_segment_start_number(self, participant: model.ParticipantBase, segment: model.Segment, start_number: int):
+    def add_participant_with_segment_start_number(self, participant: model.ParticipantBase, segment: model.Segment, start_number: int) -> None:
         self.participant_csv_data.append(self.get_participant_dict(participant, segment, start_number))
 
-    def add_person(self, person: model.Person):
+    def add_person(self, person: model.Person) -> None:
         pass
 
-    def write_file(self):
+    def write_file(self) -> None:
         if 0 == len(self.participant_csv_data):  # no participants
             print("No participants to write to CSV.")
             return
@@ -173,19 +174,18 @@ class OdfParticOutput(OutputBase):
         self.competition_elem_couples = ET.Element("Competition")
         self.disciplin = "FSK" + 31 * "-"
         self.accreditation_id = 1
-        self.competition = None
+        self.competition: model.Competition
 
-    def add_event_info(self, competiton_info: model.Competition) -> None:
-        self.competition = competiton_info
+    def add_event_info(self, competition_info: model.Competition) -> None:
+        self.competition = competition_info
 
     def add_participant(self, participant: model.ParticipantBase) -> None:
         category = participant.cat
 
         persons = []
-        if type(participant) == model.ParticipantSingle:
+        if isinstance(participant, model.ParticipantSingle):
             persons.append(participant.person)
-        # TODO add couples and teams to DT_PARTIC_TEAM.xml
-        if type(participant) == model.ParticipantCouple:
+        if isinstance(participant, model.ParticipantCouple):
             persons.append(participant.couple.partner_1)
             persons.append(participant.couple.partner_2)
         # if type(participant) == model.ParticipantTeam:
@@ -209,7 +209,7 @@ class OdfParticOutput(OutputBase):
             if participant.role:
                 par_elem.attrib["MainFunctionId"] = participant.role.ODF()
 
-        if type(participant) == model.ParticipantCouple:
+        if isinstance(participant, model.ParticipantCouple):
             first1 = participant.couple.partner_1.first_name
             initials1 = ''.join([s[0] for s in first1.split()]) if first1.split() else ''
             last1 = participant.couple.partner_1.family_name.upper()
@@ -342,7 +342,7 @@ class OdfParticOutput(OutputBase):
 class EmptySegmentPdfOutput(OutputBase):
     def __init__(self, dir_path: pathlib.Path, template_path: pathlib.Path, postfix = "JudgesDetailsperSkater") -> None:
         super().__init__(dir_path)
-        self.categories = set()
+        self.categories: Set[model.Category] = set()
         self.template_path = template_path
         self.postfix = "_" + postfix + ".pdf"
         if not dir_path.exists():
@@ -351,15 +351,16 @@ class EmptySegmentPdfOutput(OutputBase):
     def add_event_info(self, competition_info: model.Competition) -> None:
         pass
 
-    def add_person(self, model: model.Person) -> None:
+    def add_person(self, person: model.Person) -> None:
         pass
 
     def add_participant(self, participant: model.ParticipantBase) -> None:
         self.categories.add(participant.cat)
 
     def write_file(self) -> None:
+        segments: Dict[str, List[model.Segment]] = {}
         for category in self.categories:
-            segments = {}
+            segments.clear()
             def add_segment(segment: model.Segment):
                 if segment.type.ODF() not in segments:
                     segments[segment.type.ODF()] = []
@@ -379,8 +380,8 @@ class EmptySegmentPdfOutput(OutputBase):
             if segments and not self.path.parent.exists():
                 self.path.parent.mkdir(parents=True)
 
-            for segment_key in segments:
-                for i, segment in enumerate(segments[segment_key]):
+            for seg_list in segments.values():
+                for i, segment in enumerate(seg_list):
                     rsc = RSC.get_discipline_code_with_segment(category, segment, i + 1)
                     filename = rsc + self.postfix
                     shutil.copy(self.template_path, self.path / filename)

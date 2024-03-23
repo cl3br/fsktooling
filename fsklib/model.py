@@ -71,8 +71,8 @@ class Person:
         self.bday = datetime.date.today()
         self.club = Club()
 
-    def __init__(self, id, family_name, first_name, gender: Gender, birthday: datetime.date, club: Club) -> None:
-        self.id = id  # DEU ID or "Sportpassnummer"
+    def __init__(self, identifier, family_name, first_name, gender: Gender, birthday: datetime.date, club: Club) -> None:
+        self.id = identifier  # DEU ID or "Sportpassnummer"
         self.first_name = first_name
         self.family_name = family_name
         self.gender = gender
@@ -91,10 +91,10 @@ class SegmentType(DataEnum):
             raise Exception("Invalid input data source.")
 
 class Segment:
-    def __init__(self, name: str, abbreviation: str, type: SegmentType) -> None:
+    def __init__(self, name: str, abbreviation: str, segment_type: SegmentType) -> None:
         self.name = name
         self.abbr = abbreviation
-        self.type = type
+        self.type = segment_type
 
 class CategoryType(DataEnum):
     MEN = (0, 'S', 'SINGLES', 'Herren', 'Men')
@@ -138,7 +138,7 @@ class Category:
         self.level = category_level
         self.gender = gender
         self.number = number
-        self.segments = []
+        self.segments: List[Segment] = []
 
     def add_segment(self, segment: Segment):
         self.segments.append(segment)
@@ -147,9 +147,10 @@ class Couple:
     def __init__(self, partner_1: Person, partner_2: Person) -> None:
         self.partner_1 = partner_1
         self.partner_2 = partner_2
+
 class Team:
-    def __init__(self, id, name: str, club: Club, persons: List[Person]) -> None:
-        self.id = id
+    def __init__(self, identifier, name: str, club: Club, persons: List[Person]) -> None:
+        self.id = identifier
         self.name = name # could be sys team name or couple name
         self.club = club # also holds the nation
         self.persons = persons # for couples or SYS
@@ -210,4 +211,4 @@ if __name__ == "__main__":
     g = Gender.from_value('F', DataSource.CALC)
     print(g)
     print(g.FSM())
-    Gender.from_value('Herrn', DataSource.DEU)
+    print(Gender.from_value('M', DataSource.ODF))

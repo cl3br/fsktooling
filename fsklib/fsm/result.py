@@ -31,17 +31,17 @@ def extract(db_connection: mysql.connector.connection, output_file_path, competi
         if not "IFId" in attributes:
             return ""
 
-        id = attributes["IFId"]
+        fid = attributes["IFId"]
         try:
-            id_int = int(id)
+            id_int = int(fid)
             if id_int >= 999999:
                 return "999999"
             elif id_int >= 888888:
                 return "888888"
             else:
-                return id
+                return fid
         except:
-            return id
+            return fid
 
     def check_birthday(attributes: dict):
         if not "BirthDate" in attributes:
@@ -60,6 +60,10 @@ def extract(db_connection: mysql.connector.connection, output_file_path, competi
     for (odf_id, odf_message, odf_type, odf_message_version, odf_stamp) in list(cursor):
         root = ET.fromstring(odf_message)
         desc = root.find("Competition/ExtendedInfos/SportDescription")
+
+        if not desc:
+            continue
+
         cat_name = desc.attrib["EventName"]
 
         if cat_name in processed_categories:
@@ -86,11 +90,12 @@ def extract(db_connection: mysql.connector.connection, output_file_path, competi
             if not athletes:
                 # sys team
                 res_desc = result.find("Competitor/Description")
-                a = res_desc.attrib
-                d = [cat_name, check_id(a), check_attribute(a, "TeamName"), "", "", "", "", "", "TN", rank, points]
-                if debug:
-                    print(d)
-                data.append(d)
+                if res_desc:
+                    a = res_desc.attrib
+                    d = [cat_name, check_id(a), check_attribute(a, "TeamName"), "", "", "", "", "", "TN", rank, points]
+                    if debug:
+                        print(d)
+                    data.append(d)
             elif len(athletes) == 2:
                 # team id for pairs / dance
                 team_id = "-".join([check_id(athlete.attrib) for athlete in athletes])

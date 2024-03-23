@@ -1,4 +1,5 @@
 import mysql.connector
+from pathlib import Path
 
 from fsklib.output import ParticipantCsvOutput
 from fsklib import model
@@ -7,9 +8,9 @@ con = mysql.connector.connect(user='sa', password='fsmanager', host='127.0.0.1',
 
 cursor = con.cursor()
 
-csv = ParticipantCsvOutput('starting_order.csv')
+csv = ParticipantCsvOutput(Path('starting_order.csv'))
 
-
+participant: model.ParticipantBase
 # categories and segments
 cursor.execute("SELECT Id, Name, Level, Type, SortOrder FROM category")
 for (cat_id, cat_name, cat_level, cat_type, cat_order) in list(cursor):
@@ -35,8 +36,8 @@ for (cat_id, cat_name, cat_level, cat_type, cat_order) in list(cursor):
             for (id, first_name, last_name, bday, gender, nation, club_name, club_abbr, start_number) in cursor:
                 print("%d - %s %s" % (start_number, first_name, last_name))
                 club = model.Club(club_name, club_abbr, nation)
-                couple = model.Person(id, last_name, first_name, model.Gender.from_value(gender, model.DataSource.FSM), bday, club)
-                participant = model.ParticipantSingle(couple, cat)
+                person = model.Person(id, last_name, first_name, model.Gender.from_value(gender, model.DataSource.FSM), bday, club)
+                participant = model.ParticipantSingle(person, cat)
                 csv.add_participant_with_segment_start_number(participant, seg, start_number)
 
         elif cat_type in [model.CategoryType.PAIRS, model.CategoryType.ICEDANCE]: # pairs
