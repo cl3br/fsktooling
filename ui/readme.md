@@ -9,11 +9,17 @@ Für Wettbewerbe kann das Meldeformular nach [ODF](https://odf.olympictech.org/p
 welches vom FS Manager gelesen werden kann.
 
 ### Anleitung zum Erstellen eines Wettbewerbes
-1. Im DEUMeldeformularKonverter
+1. Im Excel-Meldeformular
+    - ggf. Kategorien anpassen, wenn die Standard-DEU-Kategorien des Meldeformulars nicht ausreichen
+    - in der Spalte "Kategorie" können die Namen der ISU-Kategorien (z.B. "Intermediate Novice") bzw. die maximal 6-stelligen Abkürzungen der ISU-Kategorien (z.B. "BASNOV" für "Basic Novice") eingetragen werden
+    - für nutzerspezifische Kategorien
+        * es kann ein beliebieger, maximal 6-stelliger Name (nur Großbuchstaben) angegeben werden
+        * es ist eine Setup-Datei notwendig, um diese in FSM zu nutzen (siehe 3. Im FS Manager -> Kategorien einlesen)
+2. Im DEUMeldeformularKonverter
     - Excel-Datei auswählen
     - auf konvertieren klicken
     - neben dem ausgewählten Meldeformular werden die ODF-Dateien `DT_PARTIC.xml` und `DT_PARTIC_TEAM.xml` generiert 
-2. Im FS Manager
+3. Im FS Manager
     - neue Datenbank erstellen
     - Elemente aus FSM masterData einlesen
     - Nationen aus DEUMeldeformularKonverter einlesen
@@ -26,7 +32,14 @@ welches vom FS Manager gelesen werden kann.
         * Time Schedule > "Import Categories / Segments"
         * erzeugte `DT_PARTIC.xml` auswählen
         * erzeugte `DT_PARTIC_TEAMS.xml` auswählen
-        * Kategorien für Synchron müssen von Hand angelegt werden (der Import wird aktuell nicht im FSM unterstützt)
+        * Hinweis: Kategorien für Synchron müssen von Hand angelegt werden (der Import wird aktuell nicht im FSM unterstützt)
+        * Spezialfall: Custom Categories
+            + Für nutzerspezifische Kategorien muss eine Setup-Datei (XML) für den Wettbewerb unter "Competition" importiert werden.
+            + Dies kann nach dem ersten Import der Kategorien erfolgen, da erst dann ein Wettbewerb existiert.
+            + Competition > oberste Ebene des Wettbewerbs auswählen > Import > Custom Setup
+            + Custom Setup > wähle importiertes Parameter-Set aus
+            + Kategorien erneut einlesen
+            + Ggf. leere Kategorien löschen, die beim ersten Kategorie-Import falsch angelegt wurden
     - Personen einlesen
         * People > Import > Initial Download (complete)
         * erzeugte `DT_PARTIC.xml` auswählen
@@ -46,7 +59,7 @@ welches vom FS Manager gelesen werden kann.
     - relevante Preisrichter dem aktuellen Wettbewerb zuweisen
         * Officials > Wettbewerb auswählen > von "People" zu "Competition Officials" verschieben
         * Officials > Segment auswählen > Preisrichter den Funktionen zuordnen
-3. im Datei-Explorer
+4. im Datei-Explorer
     - Flaggen für FS Manager kopieren
         * `./masterData/FSM/flags/copyToFSM.bat` ausführen
         * alternativ können die Flaggen von Hand im FSM hinzufügt werden

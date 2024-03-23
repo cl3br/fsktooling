@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.3.3
+- accept more category types: ISU category names or ODF/RSC abbreviations
+- accept custom category levels by specifying alphabetic category name with a maximum of 6 letters
+- couples can participate in multiple categories
+- bugfixes:
+    - fix converting couples with unknown ids (e.g. 888888 or 999999)
 ## v0.3.2
 - bugfixes:
     - read clubs from masterData with umlaut
