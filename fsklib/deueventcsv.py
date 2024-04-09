@@ -158,13 +158,13 @@ class DeuMeldeformularCsv:
 
             next_is_male_partner = False
             par_ids = set()
-            team_dict = {} # a map storing (team_id -> team participant), will be added at the end
+            team_dict: Dict[str, model.ParticipantTeam] = {} # a map storing (team_id -> team participant), will be added at the end
 
             @dataclass
             class CoupleEntries:
                 couple: model.Couple
                 categories: Set[model.Category]
-            couple_dict: Dict[str, CoupleEntries] = {} # safe a list of couple members (storing ID -> CoupleEntry)
+            couple_dict: Dict[str, CoupleEntries] = {} # save a list of couple members (storing ID -> CoupleEntry)
             person_last = None
 
             for athlete in deu_athlete_reader:
@@ -231,9 +231,8 @@ class DeuMeldeformularCsv:
                         else:
                             print("Error: Unable to add couple. ID cannot be found in team id for following participant: %s" % str(athlete))
                             continue
-                        if next_is_male_partner and par_gender == model.Gender.MALE:
-                            par_id_last = person_last.id
-                            if par_team_id.startswith(par_id_last):
+                        if next_is_male_partner and par_gender == model.Gender.MALE and person_last:
+                            if par_team_id.startswith(person_last.id):
                                 couple_found = True
                         next_is_male_partner = False
                     else: # no team id set -> assume: first is female, second is male
@@ -282,28 +281,37 @@ class DeuMeldeformularCsv:
                             team_dict[par_team_id] = model.ParticipantTeam(team, cat, par_role)
                         continue # add teams in the end
                     else: # couple
-                        if next_is_male_partner:
-                            person_last = person
-                            continue
-
                         couple = None
-                        if couple_found:  # couple without team id
+                        if cat.type == model.CategoryType.ICEDANCE and "solo" in cat.name.casefold():
+                            # solo ice dance
+                            partner_id = par_id + "-solo"
+                            par_ids.add(partner_id)
+                            par_team_id = par_id + '-' + partner_id
+                            partner = model.Person(partner_id, " ", "Solo", model.Gender.MALE, date.today(), person.club)
+                            for output in outputs:
+                                output.add_person(partner)
+                            couple = model.Couple(person, partner)
+                            next_is_male_partner = False
+                        elif next_is_male_partner:  # first athlete of couple without team id
+                            person_last = person
+                            continue  # check next line
+                        elif couple_found and person_last:  # couple without team id
                             # fix team id for couples
                             par_team_id = person_last.id + '-' + par_id
                             couple = model.Couple(person_last, person)
                             couple_found = False
-                        elif par_team_id not in couple_dict:
+                        elif par_team_id not in couple_dict:  # new couple
                             if par_gender == model.Gender.MALE:
                                 couple = model.Couple(None, person)
                             else:
                                 couple = model.Couple(person, None)
                         else:
+                            couple = couple_dict[par_team_id].couple
+
+                        if par_team_id not in couple_dict:
+                            couple_dict[par_team_id] = CoupleEntries(couple, categories={cat})
+                        else:
                             couple_dict[par_team_id].categories.add(cat)
-                        if couple:  # new couple
-                            if par_team_id not in couple_dict:
-                                couple_dict[par_team_id] = CoupleEntries(couple, categories={cat})
-                            else:
-                                couple_dict[par_team_id].categories.add(cat)
 
                         if par_gender == model.Gender.MALE:
                             couple_dict[par_team_id].couple.partner_2 = person
@@ -333,9 +341,9 @@ class DeuMeldeformularCsv:
                 else:
                     print("Error: unable to add following couple: %s" % str(couple))
 
-            for team in team_dict.values():
+            for par_team in team_dict.values():
                 for output in outputs:
-                    output.add_participant(team)
+                    output.add_participant(par_team)
 
             # write files
             for output in outputs:
