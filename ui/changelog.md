@@ -4,6 +4,7 @@
 - accept more category types: ISU category names or ODF/RSC abbreviations
 - accept custom category levels by specifying alphabetic category name with a maximum of 6 letters
 - couples can participate in multiple categories
+- better support for solo dance ("solo" must be part of the category name -> dummy partner is added)
 - bugfixes:
     - fix converting couples with unknown ids (e.g. 888888 or 999999)
 ## v0.3.2

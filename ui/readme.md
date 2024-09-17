@@ -35,11 +35,14 @@ welches vom FS Manager gelesen werden kann.
         * Hinweis: Kategorien für Synchron müssen von Hand angelegt werden (der Import wird aktuell nicht im FSM unterstützt)
         * Spezialfall: Custom Categories
             + Für nutzerspezifische Kategorien muss eine Setup-Datei (XML) für den Wettbewerb unter "Competition" importiert werden.
-            + Dies kann nach dem ersten Import der Kategorien erfolgen, da erst dann ein Wettbewerb existiert.
-            + Competition > oberste Ebene des Wettbewerbs auswählen > Import > Custom Setup
-            + Custom Setup > wähle importiertes Parameter-Set aus
-            + Kategorien erneut einlesen
-            + Ggf. leere Kategorien löschen, die beim ersten Kategorie-Import falsch angelegt wurden
+            + Dafür legt man am besten den Wettbewerb vor dem Import der Kategorien an:
+                - für Competition-Code muss exakt der Name des Wettbewerbs aus dem Excel-Formular eingetragen werden, damit beim Import die Daten diesem Wettbewerb zugeordnet werden
+                - für "Type of competition" muss etwas anderes als "International Competition" ausgewählt werden
+                - Speichern
+                - auf der rechten Seite über den Custom Settings > Import > Custom Setup
+                - anschließend auf der linken Seite im Wettbewerb > Custom Setup > wähle importiertes Parameter-Set aus
+                - Speichern
+            + mit dem Einlesen der Kategorien beginnen
     - Personen einlesen
         * People > Import > Initial Download (complete)
         * erzeugte `DT_PARTIC.xml` auswählen
@@ -79,9 +82,10 @@ welches vom FS Manager gelesen werden kann.
 
 ### Einschränkungen
 1. Kategorienamen können nicht importiert werden
-2. Non-ISU-Kategorien werden als "Advanced Novice"-Kategorie angelegt
-3. alle Nachwuchskategorien werden "Advanced Novice" zugeordnet
+2. Nachwuchsklasse wird "Advanced Novice" zugeordnet
     - "Basic Novice" -> beginnt der Kategoriename mit "Basic Novice"
     - "Intermediate Novice" -> beginnt der Kategoriename mit "Intermediate Novice"
-4. Jugendklasse wird der Juniorenklasse zugeordnet
-5. Synchronteams können keine Athleten zugeordnet werden
+    - alternativ kann die Spalte Kategorie wie oben unter "1. Im Excel-Meldeformular" beschrieben, angepasst werden
+3. Jugendklasse wird der Juniorenklasse zugeordnet -> die Verifikation für das Kurzprogramm muss noch von Hand entfernt werden
+4. Synchron-Kategorien werden aktuell nicht von FSM importiert und müssen von Hand angelegt werden
+4. Synchronteams können keine Athleten zugeordnet werden
