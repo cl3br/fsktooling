@@ -31,7 +31,6 @@ welches vom FS Manager gelesen werden kann.
     - Kategorien einlesen
         * Time Schedule > "Import Categories / Segments"
         * erzeugte `DT_PARTIC.xml` auswählen
-        * erzeugte `DT_PARTIC_TEAMS.xml` auswählen
         * Hinweis: Kategorien für Synchron müssen von Hand angelegt werden (der Import wird aktuell nicht im FSM unterstützt)
         * Spezialfall: Custom Categories
             + Für nutzerspezifische Kategorien muss eine Setup-Datei (XML) für den Wettbewerb unter "Competition" importiert werden.
