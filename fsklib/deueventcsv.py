@@ -221,10 +221,12 @@ class DeuMeldeformularCsv:
 
                 # guess athlete gender
                 couple_found = False
-                par_gender = model.Gender.FEMALE # default e.g. for sys teams
+                skip_person_last = False
+                par_gender = model.Gender.FEMALE  # default e.g. for sys teams
                 if cat_type in [model.CategoryType.PAIRS, model.CategoryType.ICEDANCE]:
                     if par_team_id:
-                        if par_team_id.endswith(str(par_id)): # team id ends with male team id
+
+                        if par_team_id.endswith(str(par_id)):  # team id ends with male team id
                             par_gender = model.Gender.MALE
                         elif par_team_id.startswith(str(par_id)):
                             par_gender = model.Gender.FEMALE
@@ -234,8 +236,10 @@ class DeuMeldeformularCsv:
                         if next_is_male_partner and par_gender == model.Gender.MALE and person_last:
                             if par_team_id.startswith(person_last.id):
                                 couple_found = True
+                            else:
+                                skip_person_last = True
                         next_is_male_partner = False
-                    else: # no team id set -> assume: first is female, second is male
+                    else:  # no team id set -> assume: first is female, second is male
                         if next_is_male_partner:
                             par_gender = model.Gender.MALE
                             next_is_male_partner = False
@@ -243,11 +247,14 @@ class DeuMeldeformularCsv:
                         else:
                             next_is_male_partner = True
                 else:
-                    if cat_gender != model.Gender.TEAM: # single skater -> use category gender
+                    if cat_gender != model.Gender.TEAM:  # single skater -> use category gender
                         par_gender = cat_gender
                     if next_is_male_partner:
-                        print('Error: Skipping athlete. No partner can be found for: %s' % str(person_last))
+                        skip_person_last = True
                     next_is_male_partner = False
+
+                if skip_person_last:
+                    print('Error: Skipping athlete. No partner can be found for: %s' % str(person_last))
 
                 if par_club_abbr in club_dict:
                     par_club = club_dict[par_club_abbr]
@@ -272,15 +279,15 @@ class DeuMeldeformularCsv:
 
                 if cat_type in [model.CategoryType.MEN, model.CategoryType.WOMEN, model.CategoryType.SINGLES]:
                     par = model.ParticipantSingle(person, cat, par_role)
-                else: # couple or team
+                else:  # couple or team
                     if cat_type == model.CategoryType.SYNCHRON:
                         if par_team_id in team_dict:
                             team_dict[par_team_id].team.persons.append(person)
                         else:
                             team = model.Team(par_team_id, par_team_name, person.club, [person])
                             team_dict[par_team_id] = model.ParticipantTeam(team, cat, par_role)
-                        continue # add teams in the end
-                    else: # couple
+                        continue  # add teams in the end
+                    else:  # couple
                         couple = None
                         if cat.type == model.CategoryType.ICEDANCE and "solo" in cat.name.casefold():
                             # solo ice dance
@@ -318,7 +325,7 @@ class DeuMeldeformularCsv:
                         else:
                             couple_dict[par_team_id].couple.partner_1 = person
 
-                        continue # add couples in the end
+                        continue  # add couples in the end
 
                 person_last = person
 
