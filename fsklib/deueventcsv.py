@@ -21,10 +21,10 @@ output_odf_participant_dir = pathlib.Path('./GBB21Test/')
 
 class DeuMeldeformularCsv:
     # static member
-    deu_category_to_gender = {'Herren' : model.Gender.MALE, 'Damen' : model.Gender.FEMALE, 'Einzellauf': model.Gender.FEMALE, 'Paarlaufen' : model.Gender.TEAM, 'Eistanzen' : model.Gender.TEAM, 'Synchron': model.Gender.TEAM}
+    deu_category_to_gender = {'Herren': model.Gender.MALE, 'Damen': model.Gender.FEMALE, 'Einzellauf': model.Gender.FEMALE, 'Paarlaufen': model.Gender.TEAM, 'Eistanzen': model.Gender.TEAM, 'Synchron': model.Gender.TEAM}
 
     def __init__(self) -> None:
-        self.unknown_ids = { '888888' : 0, '999999' : 0 }
+        self.unknown_ids = { '888888': 0, '999999': 0}
 
     def _convert_date(self, d: str) -> date:
         if not d:
@@ -65,14 +65,22 @@ class DeuMeldeformularCsv:
                     cat_level = model.CategoryLevel.from_value(cat_deu_level, model.DataSource.ISU)
 
                 # add custom level
-                if (not cat_level
+                if (
+                    not cat_level
                     and cat_deu_level
                     and len(cat_deu_level) <= 6
                     and cat_deu_level.isascii()
-                    and cat_deu_level.isalpha()):
+                    and cat_deu_level.isalpha()
+                ):
                     cat_level = cat_deu_level.upper()
-                    print("Warning: Unable to find category level for following category: '%s'|'%s'|'%s'" % (cat_name, cat_deu_type, cat_deu_level))
-                    print("  ->  The level '%s' must be specified as custom level with a setup.xml in FSM." % cat_level)
+                    print(
+                        "Warning: Unable to find category level for following category: '%s'|'%s'|'%s'"
+                        % (cat_name, cat_deu_type, cat_deu_level)
+                    )
+                    print(
+                        "  ->  The level '%s' must be specified as custom level with a setup.xml in FSM."
+                        % cat_level
+                    )
 
                 # guess category level from category name
                 if not cat_level:
@@ -95,7 +103,7 @@ class DeuMeldeformularCsv:
                     category_numbers[cat_id] += 1
                 else:
                     category_numbers[cat_id] = 0
-                categories_dict[cat_name] = model.Category(cat_name, cat_type, cat_level, cat_gender, category_numbers[cat_id])
+                categories_dict[cat_name] = model.Category(cat_name, cat_type, cat_level, cat_gender, number=category_numbers[cat_id])
         except Exception as e:
             print('Error while converting categories.')
             print(e)
@@ -116,7 +124,13 @@ class DeuMeldeformularCsv:
             print('Categories file not found.')
             return 3
 
-        competition = model.Competition("Test", "LV", "here", date.today(), date.today())
+        competition = model.Competition(
+            name="Test",
+            organizer="LV",
+            place="here",
+            start=date.today(),
+            end=date.today(),
+        )
         if input_event_info:
             event_info_file = open(input_event_info, 'r')
             info_reader = csv.DictReader(event_info_file, delimiter=',')
@@ -225,7 +239,6 @@ class DeuMeldeformularCsv:
                 par_gender = model.Gender.FEMALE  # default e.g. for sys teams
                 if cat_type in [model.CategoryType.PAIRS, model.CategoryType.ICEDANCE]:
                     if par_team_id:
-
                         if par_team_id.endswith(str(par_id)):  # team id ends with male team id
                             par_gender = model.Gender.MALE
                         elif par_team_id.startswith(str(par_id)):
@@ -267,7 +280,7 @@ class DeuMeldeformularCsv:
                     continue
 
                 # avoide duplicate persons
-                person = model.Person(par_id, par_family_name, par_first_name, par_gender, par_bday, par_club)
+                person = model.Person(par_id, par_first_name, par_family_name, par_gender, par_bday, par_club)
                 if par_id not in par_ids:
                     # add athletes data
                     for output in outputs:
@@ -278,14 +291,14 @@ class DeuMeldeformularCsv:
                 par = None
 
                 if cat_type in [model.CategoryType.MEN, model.CategoryType.WOMEN, model.CategoryType.SINGLES]:
-                    par = model.ParticipantSingle(person, cat, par_role)
+                    par = model.ParticipantSingle(cat, person, role=par_role)
                 else:  # couple or team
                     if cat_type == model.CategoryType.SYNCHRON:
                         if par_team_id in team_dict:
                             team_dict[par_team_id].team.persons.append(person)
                         else:
                             team = model.Team(par_team_id, par_team_name, person.club, [person])
-                            team_dict[par_team_id] = model.ParticipantTeam(team, cat, par_role)
+                            team_dict[par_team_id] = model.ParticipantTeam(cat, team, role=par_role)
                         continue  # add teams in the end
                     else:  # couple
                         couple = None
@@ -329,7 +342,7 @@ class DeuMeldeformularCsv:
 
                 person_last = person
 
-                if par == None:
+                if par is None:
                     print("Error: unable to create participant")
                     continue
 
@@ -344,7 +357,7 @@ class DeuMeldeformularCsv:
                         couple.partner_1.id and couple.partner_2.id):
                     for couple_cat in couple_entries.categories:
                         for output in outputs:
-                            output.add_participant(model.ParticipantCouple(couple, couple_cat, model.Role.ATHLETE))
+                            output.add_participant(model.ParticipantCouple(couple_cat, couple))
                 else:
                     print("Error: unable to add following couple: %s" % str(couple))
 
@@ -358,19 +371,25 @@ class DeuMeldeformularCsv:
 
         except Exception as e:
             print('Error while parsing participants')
+            print(e)
             traceback.print_exc()
         finally:
             pars_file.close()
 
+
 if __name__ == '__main__':
-    exit(DeuMeldeformularCsv().convert(input_DEU_participant_csv_file_path,
-                                             input_DEU_club_csv_file_path,
-                                             input_DEU_categories_csv_file_path,
-                                             input_DEU_competition_info_csv_file_path, [
-                                                # output.PersonCsvOutput(output_athletes_file_path),
-                                                output.ParticipantCsvOutput(output_participant_file_path),
-                                                output.OdfParticOutput(output_odf_participant_dir)
-                                           ]
-                                           ))
+    exit(
+        DeuMeldeformularCsv().convert(
+            input_DEU_participant_csv_file_path,
+            input_DEU_club_csv_file_path,
+            input_DEU_categories_csv_file_path,
+            input_DEU_competition_info_csv_file_path,
+            [
+                # output.PersonCsvOutput(output_athletes_file_path),
+                output.ParticipantCsvOutput(output_participant_file_path),
+                output.OdfParticOutput(output_odf_participant_dir),
+            ],
+        )
+    )
 else:
     print = logging.info

@@ -1,20 +1,12 @@
 import datetime
 from enum import Enum, IntEnum
-from typing import List, Optional, Union
+from typing import List, Optional, Tuple
+from typing_extensions import Self
 
-from .utils.common import normalize_string
+from pydantic import Field, model_validator
+from pydantic.dataclasses import dataclass
 
-
-class Club:
-    def __init__(self) -> None:
-        self.name = ''
-        self.abbr = ''
-        self.nation = ''
-
-    def __init__(self, name: str, abbreviation: str, nation: str) -> None:
-        self.name = name
-        self.abbr = abbreviation
-        self.nation = nation
+from fsklib.utils.common import normalize_string
 
 
 class DataSource(IntEnum):
@@ -71,22 +63,21 @@ class Gender(DataEnum):
             raise Exception("Invalid input data source.")
 
 
-class Person:
-    def __init__(self) -> None:
-        self.id = ''
-        self.first_name = ''
-        self.family_name = ''
-        self.gender = Gender.FEMALE
-        self.bday = datetime.date.today()
-        self.club = Club()
+@dataclass
+class Club:
+    name: str = ''
+    abbr: str = ''
+    nation: str = ''
 
-    def __init__(self, identifier, family_name, first_name, gender: Gender, birthday: datetime.date, club: Club) -> None:
-        self.id = identifier  # DEU ID or "Sportpassnummer"
-        self.first_name = first_name
-        self.family_name = family_name
-        self.gender = gender
-        self.bday = birthday
-        self.club = club
+
+@dataclass
+class Person:
+    id: str = ''
+    first_name: str = ''
+    family_name: str = ''
+    gender: Gender = Field(Gender.FEMALE)
+    bday: datetime.date = Field(datetime.date.today())
+    club: Club = Field(Club())
 
 
 class SegmentType(DataEnum):
@@ -101,11 +92,11 @@ class SegmentType(DataEnum):
             raise Exception("Invalid input data source.")
 
 
+@dataclass(frozen=True)
 class Segment:
-    def __init__(self, name: str, abbreviation: str, segment_type: SegmentType) -> None:
-        self.name = name
-        self.abbr = abbreviation
-        self.type = segment_type
+    name: str
+    abbr: str
+    type: SegmentType
 
 
 class CategoryType(DataEnum):
@@ -145,31 +136,37 @@ class CategoryLevel(DataEnum):
         return self.ISU() is not None
 
 
+@dataclass(frozen=True)
 class Category:
-    def __init__(self, name: str, category_type: CategoryType, category_level: Union[CategoryLevel,str], gender: Optional[Gender], number: int = 0) -> None:
-        self.name = name
-        self.type = category_type
-        self.level = category_level
-        self.gender = gender if gender else category_type.to_gender()
-        self.number = number
-        self.segments: List[Segment] = []
+    name: str
+    type: CategoryType
+    level: CategoryLevel
+    gender: Optional[Gender]
+    segments: Tuple[Segment] = Field(default_factory=tuple)
+    number: int = 0
+
+    @model_validator(mode='after')
+    def correct_gender(self) -> Self:
+        if not self.gender:
+            self.gender = self.type.to_gender()
+        return self
 
     def add_segment(self, segment: Segment):
-        self.segments.append(segment)
+        self.segments = (*self.segments, segment)
 
 
+@dataclass
 class Couple:
-    def __init__(self, partner_1: Person, partner_2: Person) -> None:
-        self.partner_1 = partner_1
-        self.partner_2 = partner_2
+    partner_1: Optional[Person]
+    partner_2: Optional[Person]
 
 
+@dataclass
 class Team:
-    def __init__(self, identifier, name: str, club: Club, persons: List[Person] = []) -> None:
-        self.id = identifier
-        self.name = name  # could be sys team name or couple name
-        self.club = club  # also holds the nation
-        self.persons = persons  # for couples or SYS
+    id: str
+    name: str  # could be sys team name or couple name
+    club: Club  # also holds the nation
+    persons: List[Person] = Field(default_factory=list)  # for couples or SYS
 
 
 class Role(DataEnum):
@@ -190,30 +187,37 @@ class Role(DataEnum):
             raise Exception("Invalid input data source.")
 
 
+@dataclass
 class ParticipantBase:
-    def __init__(self, category: Category, role=Role.ATHLETE, status=None, total_points=None) -> None:
-        self.cat = category
-        self.role = role
-        self.status = status
-        self.points = total_points
+    category: Category
 
     def get_normalized_name(self) -> str:
         pass
 
 
-class ParticipantSingle(ParticipantBase):
-    def __init__(self, person: Person, category: Category, role=Role.ATHLETE, status=None, total_points=None) -> None:
-        super().__init__(category, role, status, total_points)
-        self.person = person
+@dataclass
+class ParticipantBaseDefaults:
+    role: Role = Field(Role.ATHLETE)
+    status: Optional[str] = Field(None)
+    points: Optional[str] = Field(None)
+
+
+@dataclass
+class ParticipantSingleBase(ParticipantBase):
+    person: Person
 
     def get_normalized_name(self) -> str:
         return normalize_string(self.person.first_name + self.person.family_name)
 
 
-class ParticipantCouple(ParticipantBase):
-    def __init__(self, couple: Couple, category: Category, role=Role.ATHLETE, status=None, total_points=None) -> None:
-        super().__init__(category, role, status, total_points)
-        self.couple = couple
+@dataclass
+class ParticipantSingle(ParticipantBaseDefaults, ParticipantSingleBase):
+    pass
+
+
+@dataclass
+class ParticipantCoupleBase(ParticipantBase):
+    couple: Couple
 
     def get_normalized_name(self) -> str:
         name = "".join([
@@ -223,24 +227,33 @@ class ParticipantCouple(ParticipantBase):
         return normalize_string(name)
 
 
-class ParticipantTeam(ParticipantBase):
-    def __init__(self, team: Team, category: Category, role=Role.ATHLETE, status=None, total_points=None) -> None:
-        super().__init__(category, role, status, total_points)
-        self.team = team
+@dataclass
+class ParticipantCouple(ParticipantBaseDefaults, ParticipantCoupleBase):
+    pass
+
+
+@dataclass
+class ParticipantTeamBase(ParticipantBase):
+    team: Team
 
     def get_normalized_name(self) -> str:
         return normalize_string(self.team.name)
 
 
+@dataclass
+class ParticipantTeam(ParticipantBaseDefaults, ParticipantTeamBase):
+    pass
+
+
+@dataclass
 class Competition:
-    def __init__(self, name: str, organizer: str, place: str, start: datetime.date, end: datetime.date) -> None:
-        self.name = name
-        self.organizer = organizer
-        self.place = place
-        self.start = start
-        self.end = end
-        # self.categories = [] not yet used
-        # self.participants [] not yet used
+    name: str
+    organizer: str
+    place: str
+    start: datetime.date
+    end: datetime.date
+    # categories = [] not yet used
+    # participants = [] not yet used
 
 
 if __name__ == "__main__":
@@ -249,3 +262,8 @@ if __name__ == "__main__":
     print(g)
     print(g.FSM())
     print(Gender.from_value('M', DataSource.ODF))
+
+    print(Competition("Bär", "BEV", "EHE", datetime.date.today()))
+    person = Person("99", "Max", "Mustermann", Gender.MALE, datetime.date(1990, 1, 1), Club("Eissport-Club", "ESC", "GER"))
+    print(person)
+    print(ParticipantSingle(Category("Nachwuchs Jungs", CategoryType.MEN, CategoryLevel.NOVICE_ADVANCED, None), person))

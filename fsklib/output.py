@@ -59,14 +59,14 @@ class ParticipantCsvOutput(OutputBase):
     # def get_participant_dict(participant: model.ParticipantBase, segment: Union[model.Segment, None], start_number: Union[int, None]):
     def get_participant_dict(participant: model.ParticipantBase, segment = None, start_number = None) -> Dict[str, str]:
         cat_level = ""
-        if isinstance(participant.cat.level, str):
-            cat_level = participant.cat.level
-        if isinstance(participant.cat.level, model.CategoryLevel):
-            cat_level = participant.cat.level.CALC()
+        if isinstance(participant.category.level, str):
+            cat_level = participant.category.level
+        if isinstance(participant.category.level, model.CategoryLevel):
+            cat_level = participant.category.level.CALC()
         output = {
-                    'Kategorie-Name' : participant.cat.name,
-                    'Kategorie-Typ' : participant.cat.type.CALC(),
-                    'Kategorie-Geschlecht' : participant.cat.gender.CALC(),
+                    'Kategorie-Name' : participant.category.name,
+                    'Kategorie-Typ' : participant.category.type.CALC(),
+                    'Kategorie-Geschlecht' : participant.category.gender.CALC(),
                     'Kategorie-Level' : cat_level,
                     'Segment-Name' : None,
                     'Segment-Abk.' : None,
@@ -180,7 +180,7 @@ class OdfParticOutput(OutputBase):
         self.competition = competition_info
 
     def add_participant(self, participant: model.ParticipantBase) -> None:
-        category = participant.cat
+        category = participant.category
 
         persons = []
         if isinstance(participant, model.ParticipantSingle):
@@ -355,7 +355,7 @@ class EmptySegmentPdfOutput(OutputBase):
         pass
 
     def add_participant(self, participant: model.ParticipantBase) -> None:
-        self.categories.add(participant.cat)
+        self.categories.add(participant.category)
 
     def write_file(self) -> None:
         segments: Dict[str, List[model.Segment]] = {}
