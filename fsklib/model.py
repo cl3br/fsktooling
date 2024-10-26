@@ -79,6 +79,14 @@ class Person:
     bday: datetime.date = Field(datetime.date.today())
     club: Club = Field(Club())
 
+    @property
+    def name(self) -> str:
+        names = [name for name in [self.first_name, self.family_name] if name]
+        if names:
+            return " ".join(names)
+        else:
+            return ""
+
 
 class SegmentType(DataEnum):
     SP = (0, 'S', 'QUAL')
