@@ -9,4 +9,4 @@ Die Namen wurden teilweise angepasst, so dass diese vom DEU-Datenassistenten gef
 - Offizielle
     * Preisrichter: 14.09.2023
     * Technische Controller & Spezialisten: 14.09.2023
-    * Data & Replay-Operatoren: 12.2022
+    * Data & Replay-Operatoren: 22.10.2024
