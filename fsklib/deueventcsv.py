@@ -85,7 +85,7 @@ class DeuMeldeformularCsv:
                 # guess category level from category name
                 if not cat_level:
                     for level in model.CategoryLevel:
-                        if str(cat_name).startswith(level.ISU()):
+                        if level.is_ISU_category() and str(cat_name).startswith(level.ISU()):
                             cat_level = level
 
                 if not cat_type or not cat_gender or not cat_level:
