@@ -64,25 +64,26 @@ class ParticipantCsvOutput(OutputBase):
         if isinstance(participant.category.level, model.CategoryLevel):
             cat_level = participant.category.level.CALC()
         output = {
-                    'Kategorie-Name' : participant.category.name,
-                    'Kategorie-Typ' : participant.category.type.CALC(),
-                    'Kategorie-Geschlecht' : participant.category.gender.CALC(),
-                    'Kategorie-Level' : cat_level,
-                    'Segment-Name' : None,
-                    'Segment-Abk.' : None,
-                    'Segment-Typ' : None,
-                    'Startnummer' : start_number,
-                    'Id' : None,
-                    'Vorname' : None,
-                    'Name' : None,
-                    'Id-Partner' : None,
-                    'Vorname-Partner' : None,
-                    'Name-Partner' : None,
-                    'Team-Name' : None,
-                    'Geburtstag' : None,
-                    'Nation' : None,
-                    'Club-Name' : None,
-                    'Club-Abk.' : None,
+                    'Kategorie-Name': participant.category.name,
+                    'Kategorie-Typ': participant.category.type.CALC(),
+                    'Kategorie-Geschlecht': participant.category.gender.CALC(),
+                    'Kategorie-Level': cat_level,
+                    'Segment-Name': None,
+                    'Segment-Abk.': None,
+                    'Segment-Typ': None,
+                    'Startnummer': start_number,
+                    'Id': None,
+                    'Vorname': None,
+                    'Name': None,
+                    'Geburtstag': None,
+                    'Id-Partner': None,
+                    'Vorname-Partner': None,
+                    'Name-Partner': None,
+                    'Geburtstag-Partner': None,
+                    'Team-Name': None,
+                    'Nation': None,
+                    'Club-Name': None,
+                    'Club-Abk.': None,
                 }
 
         if segment:
@@ -104,12 +105,14 @@ class ParticipantCsvOutput(OutputBase):
         elif isinstance(participant, model.ParticipantCouple):
             p1 = participant.couple.partner_1
             p2 = participant.couple.partner_2
-            output['Id'] = participant.couple.partner_1.id
+            output['Id'] = p1.id
             output['Vorname'] = p1.first_name
             output['Name'] = p1.family_name
+            output['Geburtstag'] = p1.bday.strftime('%d.%m.%Y')
             output['Id-Partner'] = p2.id
             output['Vorname-Partner'] = p2.first_name
             output['Name-Partner'] = p2.family_name
+            output['Geburtstag-Partner'] = p2.bday.strftime('%d.%m.%Y')
             par_team_name = '%s %s / %s %s' % (
                 p1.first_name,
                 p1.family_name,
@@ -117,7 +120,7 @@ class ParticipantCsvOutput(OutputBase):
                 p2.family_name)
             output['Team-Name'] = par_team_name
 
-            if p1.club.abbr == p2.club.abbr: # same club
+            if p1.club.abbr == p2.club.abbr:  # same club
                 par_team_club_name = p1.club.name
                 par_team_club_abbr = p1.club.abbr
             else:
