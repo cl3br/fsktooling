@@ -18,12 +18,15 @@ class OdfUpdater:
         self.root: Optional[ET.ElementTree] = None
 
     def __enter__(self):
-        self.root = ET.parse(self.input_path).getroot()
+        self.read_xml()
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.write_xml()
         self.root = None
+
+    def read_xml(self) -> None:
+        self.root = ET.parse(self.input_path).getroot()
 
     def write_xml(self):
         if self.root is None:
