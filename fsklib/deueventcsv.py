@@ -7,7 +7,7 @@ import logging
 import traceback
 from typing import Dict, List, Set
 
-from . import model, output
+from fsklib import model, output
 
 # settings
 input_DEU_participant_csv_file_path = pathlib.Path('./GBB21Test/csv/Meldeliste_GBB_deu_athletes.csv')
@@ -359,8 +359,8 @@ class DeuMeldeformularCsv:
                         for output in outputs:
                             output.add_participant(model.ParticipantCouple(couple_cat, couple))
                 else:
-                    print("Error: Incomplete couple in category: %s" % str(couple.cat.name))
-                    persons = [person for person in [couple.couple.partner_1, couple.couple.partner_2] if person]
+                    print("Error: Incomplete couple in category: %s" % str(couple_entries.categories))
+                    persons = [person for person in [couple_entries.couple.partner_1, couple_entries.couple.partner_2] if person]
                     for person in persons:
                         print(f"Skipping {person.name}")
 
