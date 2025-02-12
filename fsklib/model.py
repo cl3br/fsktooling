@@ -1,6 +1,6 @@
 import datetime
 from enum import Enum, IntEnum
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Union
 from typing_extensions import Self
 
 from pydantic import Field, model_validator
@@ -148,7 +148,7 @@ class CategoryLevel(DataEnum):
 class Category:
     name: str
     type: CategoryType
-    level: CategoryLevel
+    level: Union[CategoryLevel, str]
     gender: Optional[Gender]
     segments: Tuple[Segment] = Field(default_factory=tuple)
     number: int = 0
