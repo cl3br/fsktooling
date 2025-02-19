@@ -55,6 +55,12 @@ class DeuMeldeformularCsv:
 
                 cat_type = model.CategoryType.from_value(cat_deu_type, model.DataSource.DEU)
                 cat_gender = DeuMeldeformularCsv.deu_category_to_gender[cat_deu_type] if cat_deu_type in DeuMeldeformularCsv.deu_category_to_gender else model.Gender.FEMALE
+
+                # guess solo ice dance
+                if cat_type in [None, model.CategoryType.ICEDANCE] and "solo" in cat_name.casefold():
+                    cat_type = model.CategoryType.SOLOICEDANCE
+                    cat_gender = model.Gender.TEAM
+
                 cat_level = model.CategoryLevel.from_value(cat_deu_level, model.DataSource.DEU)
                 if cat_level == model.CategoryLevel.NOTDEFINED:
                     cat_level = model.CategoryLevel.NOVICE_BASIC
@@ -290,7 +296,7 @@ class DeuMeldeformularCsv:
                 # add participants
                 par = None
 
-                if cat_type in [model.CategoryType.MEN, model.CategoryType.WOMEN, model.CategoryType.SINGLES]:
+                if cat_type in [model.CategoryType.MEN, model.CategoryType.WOMEN, model.CategoryType.SINGLES, model.CategoryType.SOLOICEDANCE]:
                     par = model.ParticipantSingle(cat, person, role=par_role)
                 else:  # couple or team
                     if cat_type == model.CategoryType.SYNCHRON:
@@ -302,17 +308,7 @@ class DeuMeldeformularCsv:
                         continue  # add teams in the end
                     else:  # couple
                         couple = None
-                        if cat.type == model.CategoryType.ICEDANCE and "solo" in cat.name.casefold():
-                            # solo ice dance
-                            partner_id = par_id + "-solo"
-                            par_ids.add(partner_id)
-                            par_team_id = par_id + '-' + partner_id
-                            partner = model.Person(partner_id, " ", "Solo", model.Gender.MALE, date.today(), person.club)
-                            for output in outputs:
-                                output.add_person(partner)
-                            couple = model.Couple(person, partner)
-                            next_is_male_partner = False
-                        elif next_is_male_partner:  # first athlete of couple without team id
+                        if next_is_male_partner:  # first athlete of couple without team id
                             person_last = person
                             continue  # check next line
                         elif couple_found and person_last:  # couple without team id

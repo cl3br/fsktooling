@@ -48,6 +48,7 @@ class DataEnum(Enum):
 
     def DEU(self) -> str:
         return self._get_value(DataSource.DEU)
+
     def ISU(self) -> str:
         return self._get_value(DataSource.ISU)
 
@@ -114,6 +115,7 @@ class CategoryType(DataEnum):
     PAIRS = (2, 'P', 'PAIRS', 'Paarlaufen', 'Pair Skating')
     ICEDANCE = (3, 'D', 'ICEDANCE', 'Eistanzen', 'Ice Dance')
     SYNCHRON = (4, 'T', 'SYNCHRON', 'Synchron', 'Synchronized Skating')
+    SOLOICEDANCE = (None, 'D', 'SOLDANCE', 'Eistanzen', 'Solo Ice Dance')
 
     def to_gender(self):
         if self == CategoryType.WOMEN:
