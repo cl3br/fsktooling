@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.3.3
+- update clubs and officials for season 24/25
+- crop flags for website to a common width
+- convert couples with unkwown ids
+- make log messages copyable
+- update to Python 3.12
+- bugfixes:
+    - always use specified file name for result extraction
+
 ## v0.3.2
 - bugfixes:
     - read clubs from masterData with umlaut
