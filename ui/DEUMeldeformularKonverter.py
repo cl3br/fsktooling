@@ -35,17 +35,27 @@ class TextHandler(logging.Handler):
         # Store a reference to the Text it will log to
         self.text = text
 
-
     def emit(self, record):
         msg = self.format(record)
+
         def append():
-            self.text.configure(state='normal')
             self.text.insert(tk.END, msg + '\n')
-            self.text.configure(state='disabled')
             # Autoscroll to the bottom
             self.text.yview(tk.END)
         # This is necessary because we can't modify the Text from other threads
         self.text.after(0, append)
+
+
+# ensure that text is not editable, but copyable
+def ctrlEvent(event, root):
+    if event.state == 4:
+        if event.keysym == 'c':
+            content = event.widget.selection_get()
+            root.clipboard_clear()
+            root.clipboard_append(content)
+            return
+    return "break"
+
 
 class converterUI(tk.Frame):
     # This class defines the graphical user interface
@@ -143,7 +153,11 @@ class converterUI(tk.Frame):
         label.grid(column=0, row=1, sticky='nw')
 
         # Add text widget to display logging info
-        st = ScrolledText.ScrolledText(self, state='disabled')
+        st = ScrolledText.ScrolledText(self, state='normal')
+
+        # make text copyable
+        st.bind("<Key>", lambda e: ctrlEvent(e, self))
+
         st.configure(font='TkFixedFont')
         st.grid(column=0, row=2, sticky='nsew', columnspan=2)
 
@@ -182,8 +196,7 @@ class databaseExtractorUI(tk.Frame):
 
     def open_xlsx(self, file_name):
         self.input_output_file.delete(0, tk.END)
-        self.input_xlsx_path = pathlib.Path(file_name)
-        self.input_output_file.insert(0, self.input_xlsx_path)
+        self.input_output_file.insert(0, file_name)
 
     def file_dialog_set_text(self, file_extensions, file_type):
         self.file_dialog(file_extensions, file_type, self.open_xlsx)
@@ -191,10 +204,11 @@ class databaseExtractorUI(tk.Frame):
     def logic(self):
         con = self.get_database_connection()
         con.cursor().execute(f"USE `{self.drop_db_selection.get()}`")
-        extract(con, self.input_xlsx_path, self.drop_comp_selection.get())
-        print(f"Ergebnisse nach {self.input_xlsx_path.resolve()} extrahiert!")
+        extract(con, self.input_output_file.get(), self.drop_comp_selection.get())
+        print(f"Ergebnisse nach {pathlib.Path(self.input_output_file.get()).resolve()} extrahiert!")
 
     def extract_callback(self):
+        self.open_xlsx(self.input_output_file.get())
         self.logic()
 
     def get_database_connection(self):

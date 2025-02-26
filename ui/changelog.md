@@ -4,9 +4,15 @@
 - accept more category types: ISU category names or ODF/RSC abbreviations
 - accept custom category levels by specifying alphabetic category name with a maximum of 6 letters
 - couples can participate in multiple categories
-- better support for solo dance ("solo" must be part of the category name -> dummy partner is added)
+- support for solo dance starting from FSM 1.8.9 ("solo" must be part of the category name)
+- update clubs and officials for season 24/25
+- crop flags for website to a common width
+- convert couples with unkwown ids (e.g. 888888 or 999999)
+- make log messages copyable
+- update to Python 3.12
 - bugfixes:
-    - fix converting couples with unknown ids (e.g. 888888 or 999999)
+    - always use specified file name for result extraction
+
 ## v0.3.2
 - bugfixes:
     - read clubs from masterData with umlaut
