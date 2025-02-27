@@ -38,7 +38,7 @@ welches vom FS Manager gelesen werden kann.
                 - für Competition-Code muss exakt der Name des Wettbewerbs aus dem Excel-Formular eingetragen werden, damit beim Import die Daten diesem Wettbewerb zugeordnet werden
                 - für "Type of competition" muss etwas anderes als "International Competition" ausgewählt werden
                 - Speichern
-                - auf der rechten Seite über den Custom Settings > Import > Custom Setup
+                - auf der rechten Seite über Custom Settings > Import > Custom Setup
                 - anschließend auf der linken Seite im Wettbewerb > Custom Setup > wähle importiertes Parameter-Set aus
                 - Speichern
             + mit dem Einlesen der Kategorien beginnen
@@ -87,4 +87,5 @@ welches vom FS Manager gelesen werden kann.
     - alternativ kann die Spalte Kategorie wie oben unter "1. Im Excel-Meldeformular" beschrieben, angepasst werden
 3. Jugendklasse wird der Juniorenklasse zugeordnet -> die Verifikation für das Kurzprogramm muss noch von Hand entfernt werden
 4. Synchron-Kategorien werden aktuell nicht von FSM importiert und müssen von Hand angelegt werden
-4. Synchronteams können keine Athleten zugeordnet werden
+5. Synchronteams können keine Athleten zugeordnet werden
+6. Gibt es zwei Kategorien mit exakt dem selben Namen im Wettbewerb (Unterschied ist beispielsweise nur durch das Segment erkennbar - z.B. Women Bronze I - Free Skating und Women Bronze I - Artistic Free Skating), dann wird nur das Ergebnis der Kategorie exportiert, welche als letztes durchgeführt wurde.
