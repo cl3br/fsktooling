@@ -181,15 +181,25 @@ class PpcOdfUpdater(OdfUpdater):
         super().__init__(odf_xml_path, output_path, suffix, override)
 
     def find_singles_ppcs(self, ppcs: List[PPC], id: str, participant: ET.Element) -> List[PPC]:
-        xml_sname = normalize_string(participant.attrib["PrintName"])
+        xml_name = normalize_string(participant.attrib["PrintName"])
+        xml_first_name = normalize_string(participant.attrib["GivenName"])
+        xml_last_name = normalize_string(participant.attrib["FamilyName"])
         find_result = []
         for ppc in ppcs:
             if not isinstance(ppc.participant, ParticipantSingle):
                 continue
             par: ParticipantSingle = ppc.participant
-            if id and id == par.person.id:
+            ppc_name = par.get_normalized_name()
+            ppc_name_reverse = par.get_normalized_name(reverse=True)
+            # id and (first name or last name matches)
+            if id and id == par.person.id and (
+                    xml_first_name in ppc_name or
+                    xml_last_name in ppc_name or
+                    normalize_string(par.person.first_name) in xml_name or
+                    normalize_string(par.person.family_name) in xml_name):
                 find_result.append(ppc)
-            elif xml_sname == par.get_normalized_name():
+            # full name (e.g. maxmueller) or reverse (e.g. muellermax) matches
+            elif xml_name in [ppc_name, ppc_name_reverse]:
                 find_result.append(ppc)
         return find_result
 
@@ -220,8 +230,8 @@ class PpcOdfUpdater(OdfUpdater):
             discipline = par.find("./Discipline")
             events = par.findall(".//RegisteredEvent")
             name = par.attrib["PrintName"]
-            # if discipline is None or not events:
-                # print(f"Skip participant {name}. Not registered in any event.")
+            if discipline is None or not events:
+                print(f"Skip participant {name}. Not registered in any event.")
             for event in events:
                 xml_id = discipline.attrib["IFId"].strip()
                 name = xml_id + " - " + name
@@ -242,7 +252,9 @@ class PpcOdfUpdater(OdfUpdater):
 
                 if not relevant_ppcs:
                     if not has_ppc:
-                        print(f"Unable to find PPC for: {name}")
+                        club = par.find(".//EventEntry[@Code='CLUB'][@Pos='2']").attrib["Value"]
+                        organisation = par.attrib["Organisation"] if "Organisation" in par.attrib else ""
+                        print(f"Unable to find PPC for: {name} ({organisation} | {club})")
                     continue
 
                 if len(relevant_ppcs) > 1:
@@ -282,10 +294,10 @@ class PpcOdfUpdater(OdfUpdater):
 
 
 if __name__ == '__main__':
-    top_dir = Path('./BM25/PPC/')
+    top_dir = Path('./KBB25/PPC/')
     parser = PdfParser(PdfParserFunctionDeu())
     ppcs_list = parser.ppcs_parse_dir(top_dir, recursive=True)
 
-    odf_file_name = Path("BM25/DT_PARTIC.xml")
+    odf_file_name = Path("KBB25/DT_PARTIC_UPDATE_25-03-07_00-32-36.xml")
     with PpcOdfUpdater(odf_file_name) as updater:
         updater.update(ppcs_list)
