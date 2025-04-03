@@ -1,16 +1,18 @@
 import csv
 from datetime import date, datetime
+import os, shutil
 import pathlib
 import xml.etree.ElementTree as ET
 from xml.dom import minidom
 
-from . import model
+from fsklib import model
+from fsklib.odf.rsc import RSC
 
 
 # virtual output base class - responsible for gathering infos and writing files
 class OutputBase:
     def __init__(self, file_path: pathlib.Path) -> None:
-        self.path = file_path
+        self.path = pathlib.Path(file_path)
     def add_event_info(self, competition_info: model.Competition) -> None:
         raise NotImplementedError()
     def add_person(self, model: model.Person) -> None:
@@ -38,6 +40,9 @@ class PersonCsvOutput(OutputBase):
 
     def write_file(self):
         if self.persons:
+            if not self.path.parent.exists():
+                self.path.parent.mkdir(parents=True)
+
             with open(self.path, 'w') as f:
                 w = csv.writer(f, delimiter='|')
                 w.writerows(self.persons)
@@ -147,6 +152,8 @@ class ParticipantCsvOutput(OutputBase):
             print("No participants to write to CSV.")
             return
         # write data to csv
+        if not self.path.parent.exists():
+            self.path.parent.mkdir(parents=True)
         with open(self.path, 'w', newline='', encoding='utf-8') as f:
             header = self.participant_csv_data[0].keys()
             csv_writer = csv.DictWriter(f, header)
@@ -182,8 +189,10 @@ class OdfParticOutput(OutputBase):
         accreditation_ids = []
         for person in persons:
             par_elem = self.competition_elem.find(f"./Participant/Discipline[@IFId='{person.id}']/..")
+            if par_elem is None:
+                continue
             dis_elem = list(par_elem)[0] # there is always only one child -> Discipline
-            event_elem = ET.SubElement(dis_elem, "RegisteredEvent", {"Event" : self.get_discipline_code(category)})
+            event_elem = ET.SubElement(dis_elem, "RegisteredEvent", {"Event" : RSC.get_discipline_code(category)})
             event_club_attrib = {
                 "Type" : "ER_EXTENDED",
                 "Code" : "CLUB"
@@ -197,38 +206,40 @@ class OdfParticOutput(OutputBase):
 
         if type(participant) == model.ParticipantCouple:
             first1 = participant.couple.partner_1.first_name
-            l = str('test').split()
-            initials1 = ''.join([s[0] for s in first1.split()])
+            initials1 = ''.join([s[0] for s in first1.split()]) if first1.split() else ''
             last1 = participant.couple.partner_1.family_name.upper()
             first2 = participant.couple.partner_2.first_name
-            initials2 = ''.join([s[0] for s in first2.split()])
+            initials2 = ''.join([s[0] for s in first2.split()]) if first2.split() else ''
             last2 = participant.couple.partner_2.family_name.upper()
             nation = participant.couple.partner_1.club.nation
             if participant.couple.partner_1.club.nation != participant.couple.partner_2.club.nation:
                 nation += "/" + participant.couple.partner_2.club.nation
-
-            team_attrib = {
-                "Code" : str(self.accreditation_id),
-                "Organisation" : nation,
-                "Number" : "1",
-                "Name" : f"{first1} {last1} / {first2} {last2}",
-                "ShortName" : f"{initials1} {last1} / {initials2} {last2}",
-                "TeamType" : "CPLW",
-                "TVTeamName" : f"{last1}/{last2}",
-                "Gender" : "X",
-                "Current" : "true",
-                "ModificationIndicator" : "N"
-                }
-
-            team_elem = ET.SubElement(self.competition_elem_couples, "Team", team_attrib)
-            comp_elem = ET.SubElement(team_elem, "Composition")
-            for count, id in enumerate(accreditation_ids, 1):
-                ET.SubElement(comp_elem, "Athlete", {"Code" : id, "Order": str(count)})
-
             team_id = f"{participant.couple.partner_1.id}-{participant.couple.partner_2.id}"
 
-            dis_elem = ET.SubElement(team_elem, "Discipline", {"Code" : self.disciplin, "IFId" : team_id})
-            event_elem = ET.SubElement(dis_elem, "RegisteredEvent", {"Event" : self.get_discipline_code(category)})
+            dis_elem = self.competition_elem_couples.find(f"./Team/Discipline[@IFId='{team_id}']")
+            if dis_elem is None:
+                team_attrib = {
+                    "Code" : str(self.accreditation_id),
+                    "Organisation" : nation,
+                    "Number" : "1",
+                    "Name" : f"{first1} {last1} / {first2} {last2}",
+                    "ShortName" : f"{initials1} {last1} / {initials2} {last2}",
+                    "TeamType" : "CPLW",
+                    "TVTeamName" : f"{last1}/{last2}",
+                    "Gender" : "X",
+                    "Current" : "true",
+                    "ModificationIndicator" : "N"
+                    }
+
+                team_elem = ET.SubElement(self.competition_elem_couples, "Team", team_attrib)
+                comp_elem = ET.SubElement(team_elem, "Composition")
+                for count, id in enumerate(accreditation_ids, 1):
+                    ET.SubElement(comp_elem, "Athlete", {"Code" : id, "Order": str(count)})
+
+
+                dis_elem = ET.SubElement(team_elem, "Discipline", {"Code" : self.disciplin, "IFId" : team_id})
+
+            event_elem = ET.SubElement(dis_elem, "RegisteredEvent", {"Event" : RSC.get_discipline_code(category)})
 
             self.accreditation_id += 1
         if type(participant) == model.ParticipantTeam:
@@ -247,7 +258,7 @@ class OdfParticOutput(OutputBase):
             team_elem = ET.SubElement(self.competition_elem_couples, "Team", team_attrib)
 
             dis_elem = ET.SubElement(team_elem, "Discipline", {"Code" : self.disciplin, "IFId" : participant.team.id})
-            event_elem = ET.SubElement(dis_elem, "RegisteredEvent", {"Event" : self.get_discipline_code(category)})
+            event_elem = ET.SubElement(dis_elem, "RegisteredEvent", {"Event" : RSC.get_discipline_code(category)})
             event_club_attrib = {
                 "Type" : "ER_EXTENDED",
                 "Code" : "CLUB"
@@ -259,6 +270,8 @@ class OdfParticOutput(OutputBase):
     def add_person(self, person: model.Person) -> None:
         first = person.first_name
         last = person.family_name
+        if not first or not last:
+            return
         participant_attrib = {
             "Code" : str(self.accreditation_id),
             "Parent" : str(self.accreditation_id),
@@ -299,6 +312,9 @@ class OdfParticOutput(OutputBase):
                 "Source" : "FSKFSK1"
             }
 
+            if not self.path.parent.exists():
+                self.path.parent.mkdir(parents=True)
+
             def write_xml(path: pathlib.Path, root: ET.Element, name: str) -> None:
                 xmlstr = minidom.parseString(ET.tostring(root, xml_declaration= True)).toprettyxml(indent="  ")
                 with open(str(path / name), "w", encoding="utf-8") as f:
@@ -318,15 +334,50 @@ class OdfParticOutput(OutputBase):
         else:
             print("OdfParticOutput: No persons found for writing. Skip creating file.")
 
-    @staticmethod
-    def get_discipline_code(category: model.Category):
+class EmptySegmentPdfOutput(OutputBase):
+    def __init__(self, dir_path: pathlib.Path, template_path: pathlib.Path, postfix = "JudgesDetailsperSkater") -> None:
+        super().__init__(dir_path)
+        self.categories = set()
+        self.template_path = template_path
+        self.postfix = "_" + postfix + ".pdf"
+        if not dir_path.exists():
+            os.mkdir(dir_path)
 
-        code = "FSK" + category.gender.ODF() + category.type.ODF()
-        code += "-" * (12 - len(code))
-        code += category.level.ODF()
-        code += "-" * (20 - len(code))
-        code += "%02d" % category.number if category.number else "--"
+    def add_event_info(self, competition_info: model.Competition) -> None:
+        pass
 
-        # add trailing dashes (discipline code always consists of 34 characters)
-        code += "-" * (34 - len(code))
-        return code
+    def add_person(self, model: model.Person) -> None:
+        pass
+
+    def add_participant(self, participant: model.ParticipantBase) -> None:
+        self.categories.add(participant.cat)
+
+    def write_file(self) -> None:
+        for category in self.categories:
+            segments = {}
+            def add_segment(segment: model.Segment):
+                if segment.type.ODF() not in segments:
+                    segments[segment.type.ODF()] = []
+                segments[segment.type.ODF()].append(segment)
+
+            if category.type == model.CategoryType.ICEDANCE:
+                if category.level in [model.CategoryLevel.NOVICE_ADVANCED, model.CategoryLevel.NOVICE_INTERMEDIATE, model.CategoryLevel.NOVICE_BASIC]:
+                    add_segment(model.Segment("Pflichttanz 1", "PD1", model.SegmentType.PD))
+                    add_segment(model.Segment("Pflichttanz 2", "PD2", model.SegmentType.PD))
+                else:
+                    add_segment(model.Segment("Rhythmustanz", "RT", model.SegmentType.SP))
+                add_segment(model.Segment("Kürtanz", "KT", model.SegmentType.FP))
+            else:
+                add_segment(model.Segment("Kurzprogramm", "KP", model.SegmentType.SP))
+                add_segment(model.Segment("Kür", "KR", model.SegmentType.FP))
+
+            if segments and not self.path.parent.exists():
+                self.path.parent.mkdir(parents=True)
+
+            for segment_key in segments:
+                for i, segment in enumerate(segments[segment_key]):
+                    rsc = RSC.get_discipline_code_with_segment(category, segment, i + 1)
+                    filename = rsc + self.postfix
+                    shutil.copy(self.template_path, self.path / filename)
+
+

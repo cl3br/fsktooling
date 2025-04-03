@@ -2,6 +2,7 @@
 *.log
 *.csv
 *.zip
+*.7z
 *.xml
 *.xlsx
 *.mp*
@@ -9,7 +10,9 @@
 *.m3u
 *.wav
 *.m4a
+*.jp*g
 *.pdf
+*.doc*
 *.pyc
 *.spec
 *.egg-info

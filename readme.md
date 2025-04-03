@@ -13,6 +13,7 @@ After extracting the information into csv files, they could be merged and furthe
 1. Convert from "DEUMeldeformular" to
     - participant csv files
     - ODF xml files that can be read by the judging system FS manager (GUI available)
+    - empty PDF files for all detailed segment results
 2. Get participant starting order from a FS manager SQL database
 3. Copy participant files from plain folder structure to category / segment folder structure and sort with starting order
 4. Merge PDF files
@@ -51,4 +52,4 @@ On Windows run:
 - Create new branch from `master` branch
 - Do your changes
 - Open PR against `master`
-- Squash merge with PR title following [conventional commits][conventional_commits]
+- Squash merge with PR title following [conventional commits](https://www.conventionalcommits.org/)

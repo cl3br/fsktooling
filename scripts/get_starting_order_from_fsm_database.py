@@ -7,7 +7,7 @@ con = mysql.connector.connect(user='sa', password='fsmanager', host='127.0.0.1',
 
 cursor = con.cursor()
 
-csv = ParticipantCsvOutput('FSMTest/starting_order.csv')
+csv = ParticipantCsvOutput('starting_order.csv')
 
 
 # categories and segments

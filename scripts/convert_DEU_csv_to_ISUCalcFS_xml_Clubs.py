@@ -8,7 +8,7 @@ xml_content_FSM = "<Clubs>\n"
 club_abbreviations = set()
 err = False
 
-with open(csv_file_path, 'r') as fi:
+with open(csv_file_path, 'r', encoding="utf-8") as fi:
     r = csv.DictReader(fi, delimiter=';')
     for row in r:
         id = str(row['ID'])

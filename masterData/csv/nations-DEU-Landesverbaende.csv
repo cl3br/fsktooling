@@ -1,15 +1,15 @@
-ID;Name;Abk.;
-30771;Baden-Württemberg;B-W;
-35049;Bayern;BAY;
-30773;Berlin;BER;
-30774;Bremen;BRE;
-30775;Hamburg;HAM;
-30776;Hessen;HES;
-30777;Niedersachsen;NIE;
-30778;Nordrhein-Westfalen;NRW;
-30779;Rheinland-Pfalz;R-P;
-30780;Saarland;SAA;
-30781;Sachsen;SAS;
-39469;Sachsen-Anhalt;SAH;
-30782;Schleswig Holstein;S-H;
-38145;Thüringen;THR;
+ID;Name;Abk.
+30771;Baden-Württemberg;B-W
+35049;Bayern;BAY
+30773;Berlin;BER
+30774;Bremen;BRE
+30775;Hamburg;HAM
+30776;Hessen;HES
+30777;Niedersachsen;NIE
+30778;Nordrhein-Westfalen;NRW
+30779;Rheinland-Pfalz;R-P
+30780;Saarland;SAA
+30781;Sachsen;SAS
+39469;Sachsen-Anhalt;SAH
+30782;Schleswig Holstein;S-H
+38145;Thüringen;THR
