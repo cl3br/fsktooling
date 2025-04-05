@@ -170,9 +170,9 @@ class OdfParser:
                 "LeaderScore": "",
                 "LeaderName": "",
                 "LeaderNat": "",
-                "LeaderFlag": "" 
+                "LeaderFlag": ""
             }
-            
+
             max_element = 0
             for element_score in root.findall('./Competition/Result/ExtendedResults/ExtendedResult[@Code="ELEMENT"]'):
                 try:
@@ -187,7 +187,7 @@ class OdfParser:
                     "ElementAbbr": element_score.find('./Extension[@Code="ELEMENT_CODE"]').attrib["Value"],
                     "ElementPoints": element_score.attrib["Value"]
                 })
-                
+
             if OdfParser.leader_result_data and OdfParser.leader_result_data["Name"]:
                 live_score.update({
                     "LeaderRank": "1",
@@ -265,11 +265,12 @@ class OdfParser:
         else:
             current_group_number = 0
 
+        print("Num starter: " + str(len(start_list_data)))
+
         for i in range(len(start_list_data), parameter.max_category_lenght):
             # fill csv with empty lines
             start_list_data.append(get_start_list_entry("", "", "", "", ""))
 
-        print("Num starter: " + str(len(start_list_data)))
         # print(start_list_data)
         self.write_csv("startl.csv", start_list_data)
         self.write_csv("pat_name1.csv", list(start_list_data[0:1]))
@@ -339,14 +340,14 @@ class OdfParser:
                             kr = result.attrib["Rank"]
                         else:
                             kr = "WD"
-                
+
                 rank = str(result_elem.attrib[result_type])
                 result_data.append(OdfParser.get_result_entry(rank, name, nation, points, kp, kr))
 
                 if code == current_competitor_code:
                     current_result = OdfParser.get_current_result_entry(name, nation, element_score, component_score, deduction, total_score, points, rank)
                     current_result_data.append(current_result)
-                    
+
                     try:
                         current_rank = int(rank)
                     except:
