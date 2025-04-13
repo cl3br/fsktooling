@@ -6,8 +6,10 @@
 - convert couples with unkwown ids
 - make log messages copyable
 - update to Python 3.12
+- add port option for data base connection (result extraction)
 - bugfixes:
     - always use specified file name for result extraction
+    - properly update data base drop down menus for result extraction
 
 ## v0.3.2
 - bugfixes:
