@@ -19,6 +19,7 @@ from fsklib.deuxlsxforms import ConvertedOutputType, DEUMeldeformularXLSX
 from fsklib.fsm.result import extract
 from fsklib.output import (EmptySegmentPdfOutput, OdfParticOutput,
                            ParticipantCsvOutput)
+from fsklib.utils.logging_helper import get_logger
 
 
 def root_dir() -> pathlib.Path:
@@ -29,6 +30,15 @@ def root_dir() -> pathlib.Path:
 
 def master_data_dir() -> pathlib.Path:
     return root_dir() / "masterData"
+
+
+# Create global logger object and add a file handler
+logger = get_logger(__name__, __file__)
+logger.setLevel(logging.INFO)
+
+file_handler = logging.FileHandler(filename=f'{logger.name}.log')
+file_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+logger.addHandler(file_handler)
 
 
 class TextHandler(logging.Handler):
@@ -52,18 +62,7 @@ class TextHandler(logging.Handler):
         self.text.after(0, append)
 
 
-# ensure that text is not editable, but copyable
-def ctrlEvent(event, root):
-    if event.state == 4:
-        if event.keysym == 'c':
-            content = event.widget.selection_get()
-            root.clipboard_clear()
-            root.clipboard_append(content)
-            return
-    return "break"
-
-
-class converterUI(tk.Frame):
+class XLSXConverterFrame(tk.Frame):
     # This class defines the graphical user interface
 
     def __init__(self, parent, *args, **kwargs):
@@ -89,10 +88,10 @@ class converterUI(tk.Frame):
 
     def logic(self):
         if not self.input_xlsx_path:
-            logging.info('Fehler: Meldeformular-Datei auswählen!')
+            logger.error('Meldeformular-Datei auswählen!')
             return
 
-        logging.info("Meldeformular einlesen")
+        logger.info("Meldeformular einlesen")
         try:
             deu_xlsx = DEUMeldeformularXLSX(self.input_xlsx_path)
             deu_xlsx.convert()
@@ -102,13 +101,13 @@ class converterUI(tk.Frame):
             deu_categories_csv = deu_xlsx.get_output_files(ConvertedOutputType.EVENT_CATERGORIES)[0]
 
             if not deu_event_info_csv or not deu_persons_csv or not deu_categories_csv:
-                logging.error("Nicht alle notwendigen Informationen konnten aus dem Meldeformular gelesen werden.")
+                logger.error("Nicht alle notwendigen Informationen konnten aus dem Meldeformular gelesen werden.")
                 return
         except:
-            logging.error("Das Meldeformular konnte nicht korrekt eingelesen werden.")
+            logger.exception("Das Meldeformular konnte nicht korrekt eingelesen werden.")
             return
 
-        logging.info("Generiere ODF-Dateien...")
+        logger.info("Generiere ODF-Dateien...")
 
         output_path = self.input_xlsx_path.parent
         deu_csv = DeuMeldeformularCsv()
@@ -121,24 +120,15 @@ class converterUI(tk.Frame):
                          EmptySegmentPdfOutput(output_path / "website", master_data_dir() / "FSM" / "website" / "empty.pdf")]
                        )
 
-        logging.info("Fertig!")
-        logging.info("Generierte Dateien befinden sich hier: %s" % str(self.input_xlsx_path.parent))
+        logger.info("Fertig!")
+        logger.info("Generierte Dateien befinden sich hier: %s" % str(self.input_xlsx_path.parent))
 
     def convert_callback(self):
         self.logic()
-        # if not self.input_xlsx_path:
-        #     logging.info('Choose input file')
-        #     return
-
-        # save_file_extensions = (
-        #     ('XML-Datei', '*.xml'),
-        #     ('All files', '*.*')
-        # )
-        # self.file_dialog(save_file_extensions, 'w', self.logic)
 
     def build_gui(self):
         # Build GUI
-        self.pack(fill = 'both', expand = True, padx = 10, pady = 10)
+        self.pack(fill='both', expand=True, padx=10, pady=10)
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(2, weight=1)
 
@@ -152,39 +142,14 @@ class converterUI(tk.Frame):
         self.input.grid(column=0, row=0, sticky='nsew')
         self.input.insert(0, 'DEU Meldeformular (.xlsx)')
         self.open_xlsx(self.input.get())
-        button = ttk.Button(self, text="Auswählen", command=lambda: self.file_dialog_set_text(file_extensions, "r") )
+        button = ttk.Button(self, text="Auswählen", command=lambda: self.file_dialog_set_text(file_extensions, "r"))
         button.grid(column=1, row=0, sticky='nsew', padx=10)
 
-        label = tk.Label(self, text="Log-Ausgabe")
-        label.grid(column=0, row=1, sticky='nw')
-
-        # Add text widget to display logging info
-        st = ScrolledText.ScrolledText(self, state='normal')
-
-        # make text copyable
-        st.bind("<Key>", lambda e: ctrlEvent(e, self))
-
-        st.configure(font='TkFixedFont')
-        st.grid(column=0, row=2, sticky='nsew', columnspan=2)
-
         button_convert = ttk.Button(self, text='Konvertieren', command=self.convert_callback)
-        button_convert.grid(column=1, row=3, sticky='e', padx=10, pady=10)
-
-        # Create textLogger
-        text_handler = TextHandler(st)
-
-        # Logging configuration
-        ui_name = pathlib.Path(__file__).stem
-        logging.basicConfig(filename=f'{ui_name}.log',
-            level=logging.INFO,
-            format='%(asctime)s - %(levelname)s - %(message)s')
-
-        # Add the handler to logger
-        logger = logging.getLogger()
-        logger.addHandler(text_handler)
+        button_convert.grid(column=1, row=1, sticky='se', padx=10, pady=10)
 
 
-class databaseExtractorUI(tk.Frame):
+class ResultExtractorFrame(tk.Frame):
     # This class defines the graphical user interface
 
     def __init__(self, parent, *args, **kwargs):
@@ -208,10 +173,14 @@ class databaseExtractorUI(tk.Frame):
         self.file_dialog(file_extensions, file_type, self.open_xlsx)
 
     def logic(self):
-        con = self.get_database_connection()
-        con.cursor().execute(f"USE `{self.drop_db_selection.get()}`")
-        extract(con, self.input_output_file.get(), self.drop_comp_selection.get())
-        print(f"Ergebnisse nach {pathlib.Path(self.input_output_file.get()).resolve()} extrahiert!")
+        try:
+            con = self.get_database_connection()
+            con.cursor().execute(f"USE `{self.drop_db_selection.get()}`")
+            extract(con, self.input_output_file.get(), self.drop_comp_selection.get())
+        except:
+            logger.exception("Verbindung zur Datenbank kann nicht hergestellt werden. Bitte überprüfen Sie alle Einstellungen.")
+            return
+        logger.info(f"Ergebnisse nach {pathlib.Path(self.input_output_file.get()).resolve()} extrahiert!")
 
     def extract_callback(self):
         self.open_xlsx(self.input_output_file.get())
@@ -229,9 +198,8 @@ class databaseExtractorUI(tk.Frame):
         if con:
             cursor = con.cursor()
             cursor.execute("SHOW DATABASES")
-            l = cursor.fetchall()
-            l = [ i[0] for i in l ]
-            return l
+            database_names = [i[0] for i in cursor.fetchall()]
+            return database_names
         else:
             return []
 
@@ -250,11 +218,10 @@ class databaseExtractorUI(tk.Frame):
             cursor = con.cursor()
             try:
                 cursor.execute("SELECT ShortName FROM competition")
-                l = cursor.fetchall()
-                l = [i[0] for i in l]
+                competition_names = [i[0] for i in cursor.fetchall()]
             except:
                 return []
-            return l
+            return competition_names
         else:
             return []
 
@@ -307,8 +274,8 @@ class databaseExtractorUI(tk.Frame):
 
         validation_cmd = (self.master.master.register(validate_integer), '%P')
 
-        button = ttk.Button(self, text="Auswählen", command=lambda: self.file_dialog_set_text(file_extensions, "w") )
-        self.input_output_file = self.add_row_to_layout(row_index, "Ausgabe-Datei", "Ergebnis.xlsx", button)
+        button = ttk.Button(self, text="Auswählen", command=lambda: self.file_dialog_set_text(file_extensions, "w"))
+        self.input_output_file = self.add_row_to_layout(row_index, "Ausgabe-Datei", "Ergebnis.xlsx", button=button)
         self.open_xlsx(self.input_output_file.get())
 
         row_index += 1  # next row in layout
@@ -354,19 +321,78 @@ class databaseExtractorUI(tk.Frame):
         self.grid_rowconfigure(row_index, weight=1)
 
 
+# ensure that text is not editable, but copyable
+def ctrlEvent(event, root):
+    if event.state == 4:
+        if event.keysym == 'c':
+            content = event.widget.selection_get()
+            root.clipboard_clear()
+            root.clipboard_append(content)
+            return
+    return "break"
+
+
+class LogFrame(tk.Frame):
+    def __init__(self, parent, *args, **kwargs):
+        tk.Frame.__init__(self, parent, *args, padx=10, pady=10, **kwargs)
+        self.build_gui()
+
+    def update_log_levels(self, *args):
+        is_debug = bool(self.do_debug.get())
+        level = logging.DEBUG if is_debug else logging.INFO
+        for name in logging.root.manager.loggerDict:
+            log = logging.getLogger(name)
+            if log.name.startswith(logger.name):
+                log.setLevel(level)
+
+    def build_gui(self):
+        # self.pack(fill='both', expand=True, padx=10, pady=10)
+
+        self.label = tk.Label(self, text="Log-Ausgabe")
+        self.label.pack(side="top")
+
+        # Add text widget to display logging info
+        self.text_box = ScrolledText.ScrolledText(self, state='normal')
+        self.text_box.pack(fill="both", expand=True)
+
+        # make text copyable
+        self.text_box.bind("<Key>", lambda e: ctrlEvent(e, self.master))
+
+        self.text_box.configure(font='TkFixedFont')
+
+        self.do_debug = tk.IntVar()
+        self.check_debug = tk.Checkbutton(self, text="debug", variable=self.do_debug)
+        self.check_debug.pack(side="right", padx=10)
+        self.do_debug.trace_add("write", self.update_log_levels)
+
+        # Create ui text widget Logger
+        text_handler = TextHandler(self.text_box)
+        text_handler.setFormatter(logging.Formatter('%(levelname)s: %(message)s'))
+        logger.addHandler(text_handler)
+
+        self.update_log_levels()
+
+
 def main():
+    # root
     root = tk.Tk()
-    tabControl = ttk.Notebook(root)
     ui_name = pathlib.Path(__file__).stem
     root.title(ui_name)
     root.option_add('*tearOff', 'FALSE')
-    tab1 = converterUI(tabControl)
-    # tab2 = ttk.Frame(tabControl)
-    tab3 = databaseExtractorUI(tabControl)
-    tabControl.add(tab1, text="Meldelisten-Konverter")
-    # tabControl.add(tab2, text="PPC-Konverter")
-    tabControl.add(tab3, text="Ergebnisse auslesen")
-    tabControl.pack(expand=1, fill="both")
+
+    # tab control
+    tab_control = ttk.Notebook(root)
+    tab1 = XLSXConverterFrame(tab_control)
+    # tab2 = ttk.Frame(tab_control)
+    tab3 = ResultExtractorFrame(tab_control)
+    tab_control.add(tab1, text="Meldelisten-Konverter")
+    # tab_control.add(tab2, text="PPC-Konverter")
+    tab_control.add(tab3, text="Ergebnisse auslesen")
+
+    log_frame = LogFrame(root)
+    tab_control.pack(side="top", fill="both", expand=True)
+    log_frame.pack(side="top", fill="both", expand=True)
+
     root.mainloop()
 
 

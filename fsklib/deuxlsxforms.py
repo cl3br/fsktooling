@@ -1,20 +1,27 @@
 import csv
-from datetime import datetime, date
-from enum import Enum
 import logging
-import openpyxl
 import os
-import pathlib
+from datetime import date, datetime
+from enum import Enum
+from pathlib import Path
 from typing import List
 
+import openpyxl
+
+from fsklib.utils.logging_helper import get_logger
+
 # settings
-input_path = 'BJM22Test/Meldungen/' # file -> convert file only; folder -> convert all in folder
+input_path = 'BJM22Test/Meldungen/'  # file -> convert file only; folder -> convert all in folder
+
+logger = get_logger(__name__, __file__)
+
 
 class DEUFormType(Enum):
-    EVENT = ('001v3') # Eventmeldung
-    TEAMEVENT = ('002v1') # Teammeldung
+    EVENT = ('001v3')  # Eventmeldung
+    TEAMEVENT = ('002v1')  # Teammeldung
     # SPORTPASS = ('003v1') # Sportpass
     # ORGANIZATION = ('004', 'v3') # Organisationsmeldung
+
 
 class DEUEventType(Enum):
     WETTBEWERB = ('Wettbewerb')
@@ -23,6 +30,7 @@ class DEUEventType(Enum):
     OFFIZIELLEN_LEHRGANG = ('Offiziellen Lehrgang')
     TRAINER_LEHRGANG = ('Trainer Lehrgang')
     SONSTIGE = ('Sonstige')
+
 
 class ConvertedOutputType(Enum):
     EVENT_INFO = 0
@@ -33,15 +41,15 @@ class ConvertedOutputType(Enum):
 class DEUMeldeformularXLSX:
     def __init__(self, xlsx_path, create_categories=True, create_persons=True, overwrite_output_files=True) -> None:
 
-        self.xlsx_path = pathlib.Path(xlsx_path)
+        self.xlsx_path = Path(xlsx_path)
         self.create_categories = create_categories
         self.create_persons = create_persons
         self.overwrite = overwrite_output_files
         wb = None
         try:
             wb = openpyxl.load_workbook(xlsx_path, data_only=True)
-        except  Exception as e:
-            print('Unable to parse xlsx file.')
+        except Exception as e:
+            logger.error('Unable to parse xlsx file.')
             raise e
 
         if not wb:
@@ -50,8 +58,8 @@ class DEUMeldeformularXLSX:
         if len(wb.worksheets) < 1:
             raise Exception('There is no worksheet within the xlsx file "%s"' % xlsx_path)
 
-        self.worksheet = wb.worksheets[0] #[wb.sheetnames[0]]
-        self.output_files = {} # dict of ConvertedOutputType -> list of file names (list(Path))
+        self.worksheet = wb.worksheets[0]
+        self.output_files = {}  # dict of ConvertedOutputType -> list of file names (list(Path))
 
     @property
     def form_type(self):
@@ -68,7 +76,6 @@ class DEUMeldeformularXLSX:
     def event_organizer(self) -> str:
         return str(self.worksheet['F4'].value)
 
-
     @property
     def event_place(self) -> str:
         return str(self.worksheet['F9'].value)
@@ -82,9 +89,9 @@ class DEUMeldeformularXLSX:
 
     @staticmethod
     def cell_to_date(cell) -> date:
-        if type(cell.value) == datetime:
+        if isinstance(cell.value, datetime):
             return cell.value.date()
-        elif type(cell.value) == str:
+        elif isinstance(cell.value, str):
             return datetime.fromisoformat(cell.value).date()
 
     @property
@@ -95,7 +102,7 @@ class DEUMeldeformularXLSX:
             # default to 1. January of current year
             d = date.today()
             return date(d.year, 1, 1)
-    
+
     @property
     def event_end_date(self) -> date:
         try:
@@ -124,11 +131,11 @@ class DEUMeldeformularXLSX:
 
     def write_csv(self, csv_data: dict, path: str) -> None:
         if len(csv_data) == 0:
-            print('Warning: CSV data is empty for "%s"' % path)
+            logger.warning('CSV data is empty for "%s"' % path)
             return
 
         if not self.overwrite and os.path.exists(path):
-            print('Warning: File "%s" exists already. No csv file created. Set overwrite=True to overwrite a existing csv file.' % path)
+            logger.warning('File "%s" exists already. No csv file created. Set overwrite=True to overwrite a existing csv file.' % path)
             return
 
         with open(path, 'w', newline='') as f:
@@ -136,20 +143,20 @@ class DEUMeldeformularXLSX:
             writer.writeheader()
             writer.writerows(csv_data)
 
-    def get_output_files(self, file_type: ConvertedOutputType) -> List[pathlib.Path]:
+    def get_output_files(self, file_type: ConvertedOutputType) -> List[Path]:
         if file_type not in self.output_files:
             return []
         return self.output_files[file_type]
 
-    def add_output_file(self, file_type: ConvertedOutputType, path: pathlib.Path) -> None:
+    def add_output_file(self, file_type: ConvertedOutputType, path: Path) -> None:
         if file_type not in self.output_files:
             self.output_files[file_type] = []
         self.output_files[file_type].append(path)
 
     def convert(self):
         if self.form_type is None:
-            print('Warning: unable to verify document type and version.')
-            print('Still trying by assuming an event registration form...')
+            logger.warning('Unable to verify document type and version.')
+            logger.warning('Still trying by assuming an event registration form...')
 
         if self.form_type is DEUFormType.EVENT or self.form_type is None:
             self.convert_to_csv()
@@ -159,16 +166,16 @@ class DEUMeldeformularXLSX:
     def convert_to_csv(self):
         base_path = self.xlsx_path.parent / 'csv'
         base_path.mkdir(exist_ok=True)
-        output_competition_csv_file_path = base_path / ( self.xlsx_path.stem + '_deu_competition.csv')
-        output_categories_csv_file_path = base_path / ( self.xlsx_path.stem + '_deu_categories.csv')
-        output_persons_csv_file_path = base_path / ( self.xlsx_path.stem + '_deu_athletes.csv')
+        output_competition_csv_file_path = base_path / (self.xlsx_path.stem + '_deu_competition.csv')
+        output_categories_csv_file_path = base_path / (self.xlsx_path.stem + '_deu_categories.csv')
+        output_persons_csv_file_path = base_path / (self.xlsx_path.stem + '_deu_athletes.csv')
 
         competition_data = [{
-            'Name' : self.event_name,
-            'Veranstalter' : self.event_organizer,
-            'Ort' : self.event_place,
-            'Start Datum' : self.event_start_date,
-            'End Datum' : self.event_end_date
+            'Name': self.event_name,
+            'Veranstalter': self.event_organizer,
+            'Ort': self.event_place,
+            'Start Datum': self.event_start_date,
+            'End Datum': self.event_end_date
         }, ]
         self.write_csv(competition_data, output_competition_csv_file_path)
         self.add_output_file(ConvertedOutputType.EVENT_INFO, output_competition_csv_file_path)
@@ -190,53 +197,55 @@ class DEUMeldeformularXLSX:
                 self.create_csv_from_table_range(start_row_categories, end_row_categories, output_categories_csv_file_path)
                 self.add_output_file(ConvertedOutputType.EVENT_CATERGORIES, output_categories_csv_file_path)
             else:
-                print('Categories not found in "%s"' % self.xlsx_path)
+                logger.error('Categories not found in "%s"' % self.xlsx_path)
         if self.create_persons:
             if start_row_persons:
                 self.create_csv_from_table_range(start_row_persons, None, output_persons_csv_file_path)
                 self.add_output_file(ConvertedOutputType.EVENT_PERSONS, output_persons_csv_file_path)
             else:
-                print('Persons not found in "%s"' % self.xlsx_path)
+                logger.error('Persons not found in "%s"' % self.xlsx_path)
+
 
 def convert_meldeformular_in_directory(input_directory, create_categories=True):
     for dir_elem in os.listdir(input_directory):
         input_file_path = os.path.join(input_directory, dir_elem)
         if not os.path.isfile(input_file_path):
-            continue # not a file
+            continue  # not a file
 
         file_name_and_ext = os.path.splitext(dir_elem)
         if len(file_name_and_ext) < 2:
-            continue # no extension
+            continue  # no extension
 
         if file_name_and_ext[1].lower() != '.xlsx':
-            continue # not a xlsx extension
+            continue  # not a xlsx extension
 
         try:
             deu_xlsx = DEUMeldeformularXLSX(input_file_path, create_categories)
             deu_xlsx.convert()
+            logger.info(f"Done for {dir_elem}!")
             # create_categories = False # uncomment this, if only the categories of the first file should be used
         except Exception as e:
-            print('Error: Failed to convert %s' % input_file_path)
-            print(e)
+            logger.error('Error: Failed to convert %s' % input_file_path)
+            logger.error(e)
 
 
 # main script code
 if __name__ == '__main__':
-    if os.path.isfile(input_path):
+    logger.setLevel(logging.INFO)
+    input_path = Path(input_path)
+    if input_path.is_file():
         try:
             deu_xlsx = DEUMeldeformularXLSX(input_path)
             deu_xlsx.convert()
         except Exception as e:
-            print('Failed')
-            print(e)
-    elif os.path.isdir(input_path):
-        create_categories = True # only for first xlsx
+            logger.error('Failed')
+            logger.error(e)
+    elif input_path.is_dir():
+        create_categories = True  # only for first xlsx
         convert_meldeformular_in_directory(input_path, create_categories)
 
     # deu_xlsx = DEUMeldeformularXLSX(input_path)
-    # print(deu_xlsx.event_name)
-    # print(deu_xlsx.event_start_date)
-    # print(type(deu_xlsx.event_start_date))
+    # logger.info(deu_xlsx.event_name)
+    # logger.info(deu_xlsx.event_start_date)
+    # logger.info(type(deu_xlsx.event_start_date))
 
-else:
-    print = logging.info
