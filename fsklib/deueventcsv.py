@@ -143,7 +143,7 @@ class DeuMeldeformularCsv:
             person_last = None
 
             for athlete in deu_athlete_reader:
-                logger.debug(par)
+                logger.debug(athlete)
 
                 field_names = ['Wettbewerb/Prüfung', 'Team ID', 'Team Name', 'ID ( ehm. Sportpassnr.)', 'Name', 'Vorname', 'Geb. Datum', 'Vereinskürzel']
                 # check if all csv field names exist
