@@ -1,17 +1,15 @@
-from dataclasses import dataclass
 import datetime
-from pathlib import Path
 import traceback
-from typing import Any, Dict, List, Optional
 import xml.etree.ElementTree as ET
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
 
 from pypdf import PdfReader
 
-from fsklib.model import (
-    Gender, Club, Person, Couple, Team,
-    Category, CategoryType, CategoryLevel,
-    ParticipantBase, ParticipantSingle, ParticipantCouple, ParticipantTeam
-)
+from fsklib.model import (Category, CategoryLevel, CategoryType, Club, Couple,
+                          Gender, ParticipantBase, ParticipantCouple,
+                          ParticipantSingle, ParticipantTeam, Person, Team)
 from fsklib.odf.xml import OdfUpdater
 from fsklib.utils.common import normalize_string
 
@@ -149,16 +147,18 @@ class PdfParser:
 
         return None
 
-    def parse_multiple(self, file_paths: List[Path]) -> List[PPC]:
+    def parse_multiple(self, file_paths: List[Path]) -> Tuple[List[PPC], List[Path]]:
         ppcs: List[PPC] = []
+        file_paths_with_error: List[Path] = []
 
         for file_path in file_paths:
             ppc = self.parse(file_path)
             if ppc is None:
-                continue
-            ppcs.append(ppc)
+                file_paths_with_error.append(file_path)
+            else:
+                ppcs.append(ppc)
 
-        return ppcs
+        return ppcs, file_paths_with_error
 
     def ppcs_parse_dir(self, directory: Path, recursive=False) -> List[PPC]:
         if not directory.is_dir():
@@ -296,7 +296,13 @@ class PpcOdfUpdater(OdfUpdater):
 if __name__ == '__main__':
     top_dir = Path('./KBB25/PPC/')
     parser = PdfParser(PdfParserFunctionDeu())
-    ppcs_list = parser.ppcs_parse_dir(top_dir, recursive=True)
+    ppcs_list, file_paths_with_error = parser.ppcs_parse_dir(top_dir, recursive=True)
+
+    if file_paths_with_error:
+        print("Unable to parse following files:")
+        for file_path in file_paths_with_error:
+            print(file_path.name)
+        print()
 
     odf_file_name = Path("KBB25/DT_PARTIC_UPDATE_25-03-07_00-32-36.xml")
     with PpcOdfUpdater(odf_file_name) as updater:
