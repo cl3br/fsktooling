@@ -1,29 +1,35 @@
 import logging
 import pathlib
 import sys
+
 try:
-    import tkinter as tk # Python 3.x
+    import tkinter as tk  # Python 3.x
+    import tkinter.scrolledtext as ScrolledText
     import tkinter.ttk as ttk
     from tkinter import filedialog
-    import tkinter.scrolledtext as ScrolledText
 except ImportError:
     import Tkinter as tk # Python 2.x
     import ScrolledText
     # TODO python2
+
 import mysql.connector
 
-from fsklib.deuxlsxforms import ConvertedOutputType, DEUMeldeformularXLSX
 from fsklib.deueventcsv import DeuMeldeformularCsv
-from fsklib.output import OdfParticOutput, ParticipantCsvOutput, EmptySegmentPdfOutput
+from fsklib.deuxlsxforms import ConvertedOutputType, DEUMeldeformularXLSX
 from fsklib.fsm.result import extract
+from fsklib.output import (EmptySegmentPdfOutput, OdfParticOutput,
+                           ParticipantCsvOutput)
+
 
 def root_dir() -> pathlib.Path:
     if getattr(sys, 'frozen', False):
         return pathlib.Path(sys.executable).parent
     return pathlib.Path(__file__).resolve().parent.parent
 
+
 def master_data_dir() -> pathlib.Path:
     return root_dir() / "masterData"
+
 
 class TextHandler(logging.Handler):
     # This class allows you to log to a Tkinter Text or ScrolledText widget
@@ -212,7 +218,7 @@ class databaseExtractorUI(tk.Frame):
         self.logic()
 
     def get_database_connection(self):
-        return mysql.connector.connect(user=self.input_user.get(), password=self.input_pw.get(), host=self.input_host.get())
+        return mysql.connector.connect(user=self.input_user.get(), password=self.input_pw.get(), host=self.input_host.get(), port=int(self.input_port.get()))
 
     def read_database_names(self) -> list:
         try:
@@ -230,17 +236,24 @@ class databaseExtractorUI(tk.Frame):
             return []
 
     def read_competition_names(self) -> list:
+        db_name = self.drop_db_selection.get()
+        if not db_name:
+            return []
+
         try:
             con = self.get_database_connection()
-            con.cursor().execute(f"USE `{self.drop_db_selection.get()}`")
+            con.cursor().execute(f"USE `{db_name}`")
         except:
             return []
 
         if con:
             cursor = con.cursor()
-            cursor.execute("SELECT ShortName FROM competition")
-            l = cursor.fetchall()
-            l = [ i[0] for i in l ]
+            try:
+                cursor.execute("SELECT ShortName FROM competition")
+                l = cursor.fetchall()
+                l = [i[0] for i in l]
+            except:
+                return []
             return l
         else:
             return []
@@ -251,6 +264,7 @@ class databaseExtractorUI(tk.Frame):
             self.drop_db.set_menu(l[0], *l)
         else:
             self.drop_db.set_menu('', *[''])
+            self.drop_db_selection.set('')
 
     def update_competition_names(self, *args):
         l = self.read_competition_names()
@@ -258,12 +272,13 @@ class databaseExtractorUI(tk.Frame):
             self.drop_comp.set_menu(l[0], *l)
         else:
             self.drop_comp.set_menu('', *[''])
+            self.drop_comp_selection.set('')
 
-    def add_row_to_layout(self, row_index, label, input_default, button=None):
+    def add_row_to_layout(self, row_index, label, input_default, button=None, **argv):
         label_variable = tk.Label(self, text=label)
         label_variable.grid(column=0, row=row_index, sticky='nw', padx=10)
 
-        input_variable = tk.Entry(self, text=tk.StringVar(self, input_default))
+        input_variable = tk.Entry(self, text=tk.StringVar(self, input_default), **argv)
         input_variable.grid(column=1, row=row_index, sticky='nsew', padx=10)
         if button:
             button.grid(column=2, row=row_index, sticky='nsew', padx=10)
@@ -272,7 +287,7 @@ class databaseExtractorUI(tk.Frame):
 
     def build_gui(self):
         # Build GUI
-        self.pack(fill = 'both', expand = True, padx = 10, pady = 10)
+        self.pack(fill='both', expand=True, padx=10, pady=10)
         self.grid_columnconfigure(0, weight=1)
 
         row_index = 0
@@ -280,20 +295,35 @@ class databaseExtractorUI(tk.Frame):
             ('Excel-Datei', '*.xlsx'),
             ('All files', '*.*')
         )
+
+        # restrict port entry to only except integers
+        def validate_integer(value: str):
+            if value.isdigit():
+                return True
+            elif value == "":
+                return True
+            else:
+                return False
+
+        validation_cmd = (self.master.master.register(validate_integer), '%P')
+
         button = ttk.Button(self, text="Auswählen", command=lambda: self.file_dialog_set_text(file_extensions, "w") )
         self.input_output_file = self.add_row_to_layout(row_index, "Ausgabe-Datei", "Ergebnis.xlsx", button)
         self.open_xlsx(self.input_output_file.get())
 
-        row_index += 1 # next row in layout
+        row_index += 1  # next row in layout
         self.input_user = self.add_row_to_layout(row_index, "Datenbank-Nutzer", "sa")
 
-        row_index += 1 # next row in layout
+        row_index += 1  # next row in layout
         self.input_pw = self.add_row_to_layout(row_index, "Datenbank-Passwort", "fsmanager")
 
-        row_index += 1 # next row in layout
+        row_index += 1  # next row in layout
         self.input_host = self.add_row_to_layout(row_index, "Datenbank-Adresse", "127.0.0.1")
 
-        row_index += 1 # next row in layout
+        row_index += 1  # next row in layout
+        self.input_port = self.add_row_to_layout(row_index, "Datenbank-Port", "3306", validate='key', validatecommand=validation_cmd)
+
+        row_index += 1  # next row in layout
         self.label_database = tk.Label(self, text="Datenbank-Name")
         self.label_database.grid(column=0, row=row_index, sticky="nw", padx=10)
 
@@ -302,12 +332,12 @@ class databaseExtractorUI(tk.Frame):
         self.drop_db = ttk.OptionMenu(self, self.drop_db_selection, default=None, *[])
         self.update_database_names()
         self.drop_db.grid(column=1, row=row_index, sticky='nw', padx=10)
-        self.drop_db_selection.trace("w", self.update_competition_names)
+        self.drop_db_selection.trace_add("write", self.update_competition_names)
 
-        button_update_database_names = ttk.Button(self, text="Aktualisieren", command=lambda: self.update_database_names() )
+        button_update_database_names = ttk.Button(self, text="Aktualisieren", command=lambda: self.update_database_names())
         button_update_database_names.grid(column=2, row=row_index, sticky='nw', padx=10)
 
-        row_index += 1 # next row in layout
+        row_index += 1  # next row in layout
         self.label_database = tk.Label(self, text="Competition-Code")
         self.label_database.grid(column=0, row=row_index, sticky="nw", padx=10)
 
@@ -317,7 +347,7 @@ class databaseExtractorUI(tk.Frame):
         self.update_competition_names()
         self.drop_comp.grid(column=1, row=row_index, sticky='nw', padx=10)
 
-        row_index += 1 # next row in layout
+        row_index += 1  # next row in layout
         button_extract = ttk.Button(self, text='Extrahieren', command=self.extract_callback)
         button_extract.grid(column=2, row=row_index, sticky='se', padx=10, pady=10)
 
@@ -335,9 +365,10 @@ def main():
     tab3 = databaseExtractorUI(tabControl)
     tabControl.add(tab1, text="Meldelisten-Konverter")
     # tabControl.add(tab2, text="PPC-Konverter")
-    tabControl.add(tab3, text="FSM-Datenbank auslesen")
+    tabControl.add(tab3, text="Ergebnisse auslesen")
     tabControl.pack(expand=1, fill="both")
     root.mainloop()
+
 
 if __name__ == "__main__":
     main()
