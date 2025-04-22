@@ -16,6 +16,7 @@ from fsklib.deuxlsxforms import ConvertedOutputType, DEUMeldeformularXLSX
 from fsklib.deueventcsv import DeuMeldeformularCsv
 from fsklib.output import OdfParticOutput, ParticipantCsvOutput, EmptySegmentPdfOutput
 from fsklib.fsm.result import extract
+from fsklib.utils.merge_csv import merge_csv
 
 def root_dir() -> pathlib.Path:
     if getattr(sys, 'frozen', False):
@@ -102,12 +103,31 @@ class converterUI(tk.Frame):
             logging.error("Das Meldeformular konnte nicht korrekt eingelesen werden.")
             return
 
+        club_deu_csv = master_data_dir() / "csv" / "clubs-DEU.csv"
+        club_merged = master_data_dir() / "csv" / "clubs-merged.csv"
+        club_merged.unlink(missing_ok=True)
+
+        logging.info("Suche nach weiteren Clubs...")
+        club_paths = set((master_data_dir() / "csv").glob("club*"))
+        club_paths_not_std = club_paths.difference(set((club_deu_csv,)))
+
+        if club_paths_not_std:
+            logging.info("Weiter Club-CSV-Dateien gefunden:")
+            for club_path in club_paths_not_std:
+                logging.info(club_path.name)
+            merge_csv(club_paths, club_merged, ';')
+
+        if club_merged.exists():
+            club_path = club_merged
+        else:
+            club_path = club_deu_csv
+
         logging.info("Generiere ODF-Dateien...")
 
         output_path = self.input_xlsx_path.parent
         deu_csv = DeuMeldeformularCsv()
         deu_csv.convert(deu_persons_csv,
-                        master_data_dir() / "csv" / "clubs-DEU.csv",
+                        club_path,
                         deu_categories_csv,
                         deu_event_info_csv,
                         [OdfParticOutput(output_path),

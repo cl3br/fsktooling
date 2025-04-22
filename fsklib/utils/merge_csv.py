@@ -60,13 +60,14 @@ def merge_csv(csv_file_list, output_file_path, delimiter=',', csv_has_header=Tru
                 output_list = list(set(output_list))
 
             with open(output_file_path, 'w') as csv_file:
-                log_file.write("Writing csv file '%s'\n" %  output_file_path)
+                log_file.write("Writing csv file '%s'\n" % output_file_path)
                 if csv_has_header:
                     writer = csv.DictWriter(csv_file, fieldnames, delimiter=delimiter)
                     writer.writeheader()
                 else:
                     writer = csv.writer(csv_file, delimiter=delimiter)
                 writer.writerows(output_list)
+
 
 if __name__ == '__main__':
     merge_csv_in_directory(input_directory, output_file_name)
