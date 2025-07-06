@@ -1,20 +1,12 @@
 import datetime
 from enum import Enum, IntEnum
-from typing import List, Optional
+from typing import List, Optional, Tuple, Union
+from typing_extensions import Self
 
-from .utils.common import normalize_string
+from pydantic import Field, model_validator
+from pydantic.dataclasses import dataclass
 
-
-class Club:
-    def __init__(self) -> None:
-        self.name = ''
-        self.abbr = ''
-        self.nation = ''
-
-    def __init__(self, name: str, abbreviation: str, nation: str) -> None:
-        self.name = name
-        self.abbr = abbreviation
-        self.nation = nation
+from fsklib.utils.common import normalize_string
 
 
 class DataSource(IntEnum):
@@ -22,6 +14,7 @@ class DataSource(IntEnum):
     CALC = 1
     ODF = 2
     DEU = 3
+    ISU = 4
 
 
 class DataEnum(Enum):
@@ -31,6 +24,7 @@ class DataEnum(Enum):
         for member in cls.__members__.values():
             if member.value[data_source] == value:
                 return member
+        return None
 
     @staticmethod
     def check_data_source(data_source: DataSource):
@@ -55,6 +49,9 @@ class DataEnum(Enum):
     def DEU(self) -> str:
         return self._get_value(DataSource.DEU)
 
+    def ISU(self) -> str:
+        return self._get_value(DataSource.ISU)
+
 
 class Gender(DataEnum):
     MALE = (0, 'M', 'M')
@@ -63,26 +60,25 @@ class Gender(DataEnum):
 
     @staticmethod
     def check_data_source(data_source: DataSource):
-        if data_source == DataSource.DEU:
+        if data_source in [DataSource.DEU, DataSource.ISU]:
             raise Exception("Invalid input data source.")
 
 
-class Person:
-    def __init__(self) -> None:
-        self.id = ''
-        self.first_name = ''
-        self.family_name = ''
-        self.gender = Gender.FEMALE
-        self.bday = datetime.date.today()
-        self.club = Club()
+@dataclass
+class Club:
+    name: str = ''
+    abbr: str = ''
+    nation: str = ''
 
-    def __init__(self, id, family_name, first_name, gender: Gender, birthday: datetime.date, club: Club) -> None:
-        self.id = id  # DEU ID or "Sportpassnummer"
-        self.first_name = first_name
-        self.family_name = family_name
-        self.gender = gender
-        self.bday = birthday
-        self.club = club
+
+@dataclass
+class Person:
+    id: str = ''
+    first_name: str = ''
+    family_name: str = ''
+    gender: Gender = Field(Gender.FEMALE)
+    bday: datetime.date = Field(datetime.date.today())
+    club: Club = Field(Club())
 
     @property
     def name(self) -> str:
@@ -101,24 +97,25 @@ class SegmentType(DataEnum):
 
     @staticmethod
     def check_data_source(data_source: DataSource):
-        if data_source == DataSource.DEU:
+        if data_source in [DataSource.DEU, DataSource.ISU]:
             raise Exception("Invalid input data source.")
 
 
+@dataclass(frozen=True)
 class Segment:
-    def __init__(self, name: str, abbreviation: str, type: SegmentType) -> None:
-        self.name = name
-        self.abbr = abbreviation
-        self.type = type
+    name: str
+    abbr: str
+    type: SegmentType
 
 
 class CategoryType(DataEnum):
-    MEN = (0, 'S', 'SINGLES', 'Herren')
-    WOMEN = (1, 'S', 'SINGLES', 'Damen')
-    SINGLES = (None, 'S', 'SINGLES', 'Einzellaufen')
-    PAIRS = (2, 'P', 'PAIRS', 'Paarlaufen')
-    ICEDANCE = (3, 'D', 'ICEDANCE', 'Eistanzen')
-    SYNCHRON = (4, 'T', 'SYNCHRON', 'Synchron')
+    MEN = (0, 'S', 'SINGLES', 'Herren', 'Men')
+    WOMEN = (1, 'S', 'SINGLES', 'Damen', 'Women')
+    SINGLES = (None, 'S', 'SINGLES', 'Einzellaufen', 'Single Skating')
+    PAIRS = (2, 'P', 'PAIRS', 'Paarlaufen', 'Pair Skating')
+    ICEDANCE = (3, 'D', 'ICEDANCE', 'Eistanzen', 'Ice Dance')
+    SYNCHRON = (4, 'T', 'SYNCHRON', 'Synchron', 'Synchronized Skating')
+    SOLOICEDANCE = (None, 'D', 'SOLDANCE', 'Eistanzen', 'Solo Ice Dance')
 
     def to_gender(self):
         if self == CategoryType.WOMEN:
@@ -132,48 +129,54 @@ class CategoryType(DataEnum):
 
 
 class CategoryLevel(DataEnum):
-    SENIOR = (0, 'S', '', 'Meisterklasse')
-    JUNIOR = (1, 'J', 'JUNIOR', 'Juniorenklasse')
-    JUGEND = (1, 'J', 'JUNIOR', 'Jugendklasse')
-    NOVICE_ADVANCED = (3, 'V', 'ADVNOV', 'Nachwuchsklasse')
-    NOVICE_INTERMEDIATE = (4, 'I', 'INTNOV', 'Nachwuchsklasse')
-    NOVICE_BASIC = (2, 'R', 'BASNOV', 'Nachwuchsklasse')
-    ADULT = (5, 'O', 'ADULT', 'Adult')
-    NOTDEFINED = (None, 'O', '', 'nicht definiert')
-    MIXEDAGE = (6, 'O', 'MIXAGE', 'nicht definiert')
-    ELITE12 = (7, 'O', 'SENELI', 'Adult')
-    MASTERS = (8, 'O', 'MASTER', 'Adult')
-    OTHER = (None, 'O', '', 'Sonstige Wettbewerbe')
+    SENIOR = (0, 'S', '', 'Meisterklasse', 'Senior')
+    JUNIOR = (1, 'J', 'JUNIOR', 'Juniorenklasse', 'Junior')
+    JUGEND = (1, 'J', 'JUNIOR', 'Jugendklasse', None)
+    NOVICE_ADVANCED = (3, 'V', 'ADVNOV', 'Nachwuchsklasse', 'Advanced Novice')
+    NOVICE_INTERMEDIATE = (4, 'I', 'INTNOV', 'Nachwuchsklasse', 'Intermediate Novice')
+    NOVICE_BASIC = (2, 'R', 'BASNOV', 'Nachwuchsklasse', 'Basic Novice')
+    ADULT = (5, 'O', 'ADULT', 'Adult', 'Adult')
+    NOTDEFINED = (None, 'O', '', 'nicht definiert', None)
+    MIXEDAGE = (6, 'O', 'MIXAGE', 'nicht definiert', 'Mixed Age')
+    ELITE12 = (7, 'O', 'SENELI', 'Adult', 'Elite Masters')
+    MASTERS = (8, 'O', 'MASTER', 'Adult', 'Masters')
+    OTHER = (None, 'O', '', 'Sonstige Wettbewerbe', None)
 
     def is_ISU_category(self) -> bool:
-        return self.FSM() is not None
+        return self.ISU() is not None
 
 
+@dataclass(frozen=True)
 class Category:
-    def __init__(self, name: str, category_type: CategoryType, category_level: CategoryLevel, gender: Optional[Gender], number: int = 0) -> None:
-        self.name = name
-        self.type = category_type
-        self.level = category_level
-        self.gender = gender if gender else category_type.to_gender()
-        self.number = number
-        self.segments = []
+    name: str
+    type: CategoryType
+    level: Union[CategoryLevel, str]
+    gender: Optional[Gender]
+    segments: Tuple[Segment] = Field(default_factory=tuple)
+    number: int = 0
+
+    @model_validator(mode='after')
+    def correct_gender(self) -> Self:
+        if not self.gender:
+            self.gender = self.type.to_gender()
+        return self
 
     def add_segment(self, segment: Segment):
-        self.segments.append(segment)
+        self.segments = (*self.segments, segment)
 
 
+@dataclass
 class Couple:
-    def __init__(self, partner_1: Person, partner_2: Person) -> None:
-        self.partner_1 = partner_1
-        self.partner_2 = partner_2
+    partner_1: Optional[Person]
+    partner_2: Optional[Person]
 
 
+@dataclass
 class Team:
-    def __init__(self, id, name: str, club: Club, persons: List[Person] = []) -> None:
-        self.id = id
-        self.name = name  # could be sys team name or couple name
-        self.club = club  # also holds the nation
-        self.persons = persons  # for couples or SYS
+    id: str
+    name: str  # could be sys team name or couple name
+    club: Club  # also holds the nation
+    persons: List[Person] = Field(default_factory=list)  # for couples or SYS
 
 
 class Role(DataEnum):
@@ -194,30 +197,37 @@ class Role(DataEnum):
             raise Exception("Invalid input data source.")
 
 
+@dataclass
 class ParticipantBase:
-    def __init__(self, category: Category, role=Role.ATHLETE, status=None, total_points=None) -> None:
-        self.cat = category
-        self.role = role
-        self.status = status
-        self.points = total_points
+    category: Category
 
     def get_normalized_name(self) -> str:
         pass
 
 
-class ParticipantSingle(ParticipantBase):
-    def __init__(self, person: Person, category: Category, role=Role.ATHLETE, status=None, total_points=None) -> None:
-        super().__init__(category, role, status, total_points)
-        self.person = person
+@dataclass
+class ParticipantBaseDefaults:
+    role: Role = Field(Role.ATHLETE)
+    status: Optional[str] = Field(None)
+    points: Optional[str] = Field(None)
+
+
+@dataclass
+class ParticipantSingleBase(ParticipantBase):
+    person: Person
 
     def get_normalized_name(self) -> str:
         return normalize_string(self.person.first_name + self.person.family_name)
 
 
-class ParticipantCouple(ParticipantBase):
-    def __init__(self, couple: Couple, category: Category, role=Role.ATHLETE, status=None, total_points=None) -> None:
-        super().__init__(category, role, status, total_points)
-        self.couple = couple
+@dataclass
+class ParticipantSingle(ParticipantBaseDefaults, ParticipantSingleBase):
+    pass
+
+
+@dataclass
+class ParticipantCoupleBase(ParticipantBase):
+    couple: Couple
 
     def get_normalized_name(self) -> str:
         name = "".join([
@@ -227,24 +237,33 @@ class ParticipantCouple(ParticipantBase):
         return normalize_string(name)
 
 
-class ParticipantTeam(ParticipantBase):
-    def __init__(self, team: Team, category: Category, role=Role.ATHLETE, status=None, total_points=None) -> None:
-        super().__init__(category, role, status, total_points)
-        self.team = team
+@dataclass
+class ParticipantCouple(ParticipantBaseDefaults, ParticipantCoupleBase):
+    pass
+
+
+@dataclass
+class ParticipantTeamBase(ParticipantBase):
+    team: Team
 
     def get_normalized_name(self) -> str:
         return normalize_string(self.team.name)
 
 
+@dataclass
+class ParticipantTeam(ParticipantBaseDefaults, ParticipantTeamBase):
+    pass
+
+
+@dataclass
 class Competition:
-    def __init__(self, name: str, organizer: str, place: str, start: datetime.date, end: datetime.date) -> None:
-        self.name = name
-        self.organizer = organizer
-        self.place = place
-        self.start = start
-        self.end = end
-        # self.categories = [] not yet used
-        # self.participants [] not yet used
+    name: str
+    organizer: str
+    place: str
+    start: datetime.date
+    end: datetime.date
+    # categories = [] not yet used
+    # participants = [] not yet used
 
 
 if __name__ == "__main__":
@@ -252,4 +271,9 @@ if __name__ == "__main__":
     g = Gender.from_value('F', DataSource.CALC)
     print(g)
     print(g.FSM())
-    Gender.from_value('Herrn', DataSource.DEU)
+    print(Gender.from_value('M', DataSource.ODF))
+
+    print(Competition("Bär", "BEV", "EHE", datetime.date.today()))
+    person = Person("99", "Max", "Mustermann", Gender.MALE, datetime.date(1990, 1, 1), Club("Eissport-Club", "ESC", "GER"))
+    print(person)
+    print(ParticipantSingle(Category("Nachwuchs Jungs", CategoryType.MEN, CategoryLevel.NOVICE_ADVANCED, None), person))

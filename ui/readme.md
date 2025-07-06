@@ -9,11 +9,17 @@ Für Wettbewerbe kann das Meldeformular nach [ODF](https://odf.olympictech.org/p
 welches vom FS Manager gelesen werden kann.
 
 ### Anleitung zum Erstellen eines Wettbewerbes
-1. Im DEUMeldeformularKonverter
+1. Im Excel-Meldeformular
+    - ggf. Kategorien anpassen, wenn die Standard-DEU-Kategorien des Meldeformulars nicht ausreichen
+    - in der Spalte "Kategorie" können die Namen der ISU-Kategorien (z.B. "Intermediate Novice") bzw. die maximal 6-stelligen Abkürzungen der ISU-Kategorien (z.B. "BASNOV" für "Basic Novice") eingetragen werden
+    - für nutzerspezifische Kategorien
+        * es kann ein beliebieger, maximal 6-stelliger Name (nur Großbuchstaben) angegeben werden
+        * es ist eine Setup-Datei notwendig, um diese in FSM zu nutzen (siehe 3. Im FS Manager -> Kategorien einlesen)
+2. Im DEUMeldeformularKonverter
     - Excel-Datei auswählen
     - auf konvertieren klicken
     - neben dem ausgewählten Meldeformular werden die ODF-Dateien `DT_PARTIC.xml` und `DT_PARTIC_TEAM.xml` generiert 
-2. Im FS Manager
+3. Im FS Manager
     - neue Datenbank erstellen
     - Elemente aus FSM masterData einlesen
     - Nationen aus DEUMeldeformularKonverter einlesen
@@ -25,8 +31,17 @@ welches vom FS Manager gelesen werden kann.
     - Kategorien einlesen
         * Time Schedule > "Import Categories / Segments"
         * erzeugte `DT_PARTIC.xml` auswählen
-        * erzeugte `DT_PARTIC_TEAMS.xml` auswählen
-        * Kategorien für Synchron müssen von Hand angelegt werden (der Import wird aktuell nicht im FSM unterstützt)
+        * Hinweis: Kategorien für Synchron müssen von Hand angelegt werden (der Import wird aktuell nicht im FSM unterstützt)
+        * Spezialfall: Custom Categories
+            + Für nutzerspezifische Kategorien muss eine Setup-Datei (XML) für den Wettbewerb unter "Competition" importiert werden.
+            + Dafür legt man am besten den Wettbewerb vor dem Import der Kategorien an:
+                - für Competition-Code muss exakt der Name des Wettbewerbs aus dem Excel-Formular eingetragen werden, damit beim Import die Daten diesem Wettbewerb zugeordnet werden
+                - für "Type of competition" muss etwas anderes als "International Competition" ausgewählt werden
+                - Speichern
+                - auf der rechten Seite über Custom Settings > Import > Custom Setup
+                - anschließend auf der linken Seite im Wettbewerb > Custom Setup > wähle importiertes Parameter-Set aus
+                - Speichern
+            + mit dem Einlesen der Kategorien beginnen
     - Personen einlesen
         * People > Import > Initial Download (complete)
         * erzeugte `DT_PARTIC.xml` auswählen
@@ -46,7 +61,7 @@ welches vom FS Manager gelesen werden kann.
     - relevante Preisrichter dem aktuellen Wettbewerb zuweisen
         * Officials > Wettbewerb auswählen > von "People" zu "Competition Officials" verschieben
         * Officials > Segment auswählen > Preisrichter den Funktionen zuordnen
-3. im Datei-Explorer
+4. im Datei-Explorer
     - Flaggen für FS Manager kopieren
         * `./masterData/FSM/flags/copyToFSM.bat` ausführen
         * alternativ können die Flaggen von Hand im FSM hinzufügt werden
@@ -66,9 +81,11 @@ welches vom FS Manager gelesen werden kann.
 
 ### Einschränkungen
 1. Kategorienamen können nicht importiert werden
-2. Non-ISU-Kategorien werden als "Advanced Novice"-Kategorie angelegt
-3. alle Nachwuchskategorien werden "Advanced Novice" zugeordnet
+2. Nachwuchsklasse wird "Advanced Novice" zugeordnet
     - "Basic Novice" -> beginnt der Kategoriename mit "Basic Novice"
     - "Intermediate Novice" -> beginnt der Kategoriename mit "Intermediate Novice"
-4. Jugendklasse wird der Juniorenklasse zugeordnet
+    - alternativ kann die Spalte Kategorie wie oben unter "1. Im Excel-Meldeformular" beschrieben, angepasst werden
+3. Jugendklasse wird der Juniorenklasse zugeordnet -> die Verifikation für das Kurzprogramm muss noch von Hand entfernt werden
+4. Synchron-Kategorien werden aktuell nicht von FSM importiert und müssen von Hand angelegt werden
 5. Synchronteams können keine Athleten zugeordnet werden
+6. Gibt es zwei Kategorien mit exakt dem selben Namen im Wettbewerb (Unterschied ist beispielsweise nur durch das Segment erkennbar - z.B. Women Bronze I - Free Skating und Women Bronze I - Artistic Free Skating), dann wird nur das Ergebnis der Kategorie exportiert, welche als letztes durchgeführt wurde.
