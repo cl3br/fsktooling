@@ -12,6 +12,9 @@ from fsklib.model import (Category, CategoryLevel, CategoryType, Club, Couple,
                           ParticipantSingle, ParticipantTeam, Person, Team)
 from fsklib.odf.xml import OdfUpdater
 from fsklib.utils.common import normalize_string
+from fsklib.utils.logging_helper import get_logger
+
+logger = get_logger(__name__, __file__)
 
 
 @dataclass
@@ -132,18 +135,16 @@ class PdfParser:
         try:
             reader = PdfReader(file_path)
         except Exception:
-            print(f"Error while reading pdf file: {file_path}")
-            traceback.print_exc()
-            print()
+            logger.error(f"Error while reading pdf file: {file_path}")
+            logger.debug(traceback.format_exc())
             return None
 
         fields = reader.get_fields()
         try:
             return self.function(file_path, fields)
         except Exception:
-            print(f"Error while parsing file: {file_path}")
-            traceback.print_exc()
-            print()
+            logger.error(f"Error while parsing file: {file_path}")
+            logger.debug(traceback.format_exc())
 
         return None
 
@@ -213,12 +214,12 @@ class PpcOdfUpdater(OdfUpdater):
 
     def update(self, ppcs: List[PPC]) -> None:
         if not self.root:
-            print("Read xml file before updating it. Use `read_xml()` or `with Updater`")
+            logger.error("Read xml file before updating it. Use `read_xml()` or `with Updater`")
             return
 
         # check Odf document type to find relevant ppc files
         if "DocumentType" not in self.root.attrib:
-            print("No ODF document type found. -> Invalid odf input format.")
+            logger.error("No ODF document type found. -> Invalid odf input format.")
             return
 
         is_teams = self.root.attrib["DocumentType"].startswith("DT_PARTIC_TEAMS")
@@ -231,13 +232,13 @@ class PpcOdfUpdater(OdfUpdater):
             events = par.findall(".//RegisteredEvent")
             name = par.attrib["PrintName"]
             if discipline is None or not events:
-                print(f"Skip participant {name}. Not registered in any event.")
+                logger.warning(f"Skip participant {name}. Not registered in any event.")
             for event in events:
                 xml_id = discipline.attrib["IFId"].strip()
                 name = xml_id + " - " + name
                 rsc = event.attrib["Event"]
                 has_ppc = event.find("./EventEntry[@Code='ELEMENT_CODE_FREE']") is not None
-                # print(f"Has ppc: {name}")
+                logger.debug(f"Following athlete already has a ppc: %s", name )
 
                 if is_singles:
                     if CategoryType.SINGLES.ODF() not in rsc:
@@ -254,19 +255,19 @@ class PpcOdfUpdater(OdfUpdater):
                     if not has_ppc:
                         club = par.find(".//EventEntry[@Code='CLUB'][@Pos='2']").attrib["Value"]
                         organisation = par.attrib["Organisation"] if "Organisation" in par.attrib else ""
-                        print(f"Unable to find PPC for: {name} ({organisation} | {club})")
+                        logger.error(f"Unable to find PPC for: {name} ({organisation} | {club})")
                     continue
 
                 if len(relevant_ppcs) > 1:
                     if not has_ppc:
-                        print(f"Ambiguous ppcs found for: {name}")
+                        logger.warning(f"Ambiguous ppcs found for: {name}")
                         for ppc in relevant_ppcs:
-                            print(ppc.path)
+                            logger.warning(ppc.path)
                     continue
 
                 assert len(relevant_ppcs) == 1
 
-                # print(f"Found PPC for: {name}")
+                logger.debug(f"Found PPC for: {name}")
 
                 ppc = relevant_ppcs[0]
                 for element_list, odf_segment_name in zip(
@@ -288,9 +289,9 @@ class PpcOdfUpdater(OdfUpdater):
 
         # check for unused ppcs
         unused_ppcs = {ppc.path for ppc in ppcs} - {ppc.path for ppc in used_ppcs}
-        print("Unused files:")
+        logger.warning("Unused files:")
         for ppc in unused_ppcs:
-            print(ppc.name)
+            logger.warning(ppc.name)
 
 
 if __name__ == '__main__':
@@ -299,10 +300,9 @@ if __name__ == '__main__':
     ppcs_list, file_paths_with_error = parser.ppcs_parse_dir(top_dir, recursive=True)
 
     if file_paths_with_error:
-        print("Unable to parse following files:")
+        logger.error("Unable to parse following files:")
         for file_path in file_paths_with_error:
-            print(file_path.name)
-        print()
+            logger.error(file_path.name)
 
     odf_file_name = Path("KBB25/DT_PARTIC_UPDATE_25-03-07_00-32-36.xml")
     with PpcOdfUpdater(odf_file_name) as updater:
