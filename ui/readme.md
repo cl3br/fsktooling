@@ -89,3 +89,4 @@ welches vom FS Manager gelesen werden kann.
 4. Synchron-Kategorien werden aktuell nicht von FSM importiert und müssen von Hand angelegt werden
 5. Synchronteams können keine Athleten zugeordnet werden
 6. Gibt es zwei Kategorien mit exakt dem selben Namen im Wettbewerb (Unterschied ist beispielsweise nur durch das Segment erkennbar - z.B. Women Bronze I - Free Skating und Women Bronze I - Artistic Free Skating), dann wird nur das Ergebnis der Kategorie exportiert, welche als letztes durchgeführt wurde.
+7. Das Einlesen von PPC-Daten für Paare, Eistänzer und Synchron-Teams wird aktuell noch nicht unterstützt.
