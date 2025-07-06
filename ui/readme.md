@@ -84,7 +84,7 @@ welches vom FS Manager gelesen werden kann.
 2. Nachwuchsklasse wird "Advanced Novice" zugeordnet
     - "Basic Novice" -> beginnt der Kategoriename mit "Basic Novice"
     - "Intermediate Novice" -> beginnt der Kategoriename mit "Intermediate Novice"
-    - alternativ kann die Spalte Kategorie wie oben unter "1. Im Excel-Meldeformular" beschrieben, angepasst werden
+    - alternativ kann die Spalte "Kategorie" wie oben unter "1. Im Excel-Meldeformular" beschrieben, angepasst werden
 3. Jugendklasse wird der Juniorenklasse zugeordnet -> die Verifikation für das Kurzprogramm muss noch von Hand entfernt werden
 4. Synchron-Kategorien werden aktuell nicht von FSM importiert und müssen von Hand angelegt werden
 5. Synchronteams können keine Athleten zugeordnet werden
