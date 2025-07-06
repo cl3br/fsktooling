@@ -1,4 +1,5 @@
 import datetime
+import logging
 import traceback
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
@@ -15,6 +16,7 @@ from fsklib.utils.common import normalize_string
 from fsklib.utils.logging_helper import get_logger
 
 logger = get_logger(__name__, __file__)
+logger.setLevel(logging.INFO)
 
 
 @dataclass
@@ -135,7 +137,7 @@ class PdfParser:
         try:
             reader = PdfReader(file_path)
         except Exception:
-            logger.error(f"Error while reading pdf file: {file_path}")
+            logger.debug(f"Error while reading pdf file: {file_path}")
             logger.debug(traceback.format_exc())
             return None
 
@@ -143,7 +145,7 @@ class PdfParser:
         try:
             return self.function(file_path, fields)
         except Exception:
-            logger.error(f"Error while parsing file: {file_path}")
+            logger.debug(f"Error while parsing file: {file_path}")
             logger.debug(traceback.format_exc())
 
         return None
@@ -161,7 +163,7 @@ class PdfParser:
 
         return ppcs, file_paths_with_error
 
-    def ppcs_parse_dir(self, directory: Path, recursive=False) -> List[PPC]:
+    def ppcs_parse_dir(self, directory: Path, recursive=False) -> Tuple[List[PPC], List[Path]]:
         if not directory.is_dir():
             return []
 
@@ -226,6 +228,10 @@ class PpcOdfUpdater(OdfUpdater):
         is_singles = not is_teams
         par_type = "Team" if is_teams else "Participant"
         used_ppcs = []
+        skipped_participants_no_event = []
+        skipped_participants_has_ppc = []
+        skipped_participants_no_ppc = []
+        skipped_participants_ambiguous = []
 
         for par in self.root.findall(f".//{par_type}"):
             discipline = par.find("./Discipline")
@@ -233,12 +239,18 @@ class PpcOdfUpdater(OdfUpdater):
             name = par.attrib["PrintName"]
             if discipline is None or not events:
                 logger.warning(f"Skip participant {name}. Not registered in any event.")
+                skipped_participants_no_event.append(name)
+                continue
             for event in events:
                 xml_id = discipline.attrib["IFId"].strip()
                 name = xml_id + " - " + name
                 rsc = event.attrib["Event"]
                 has_ppc = event.find("./EventEntry[@Code='ELEMENT_CODE_FREE']") is not None
-                logger.debug(f"Following athlete already has a ppc: %s", name )
+
+                if has_ppc:
+                    logger.info("Skip participant %s. Already found ppc entries in DT_PARTIC", name)
+                    skipped_participants_has_ppc.append(f"{name} - {rsc}")
+                    continue
 
                 if is_singles:
                     if CategoryType.SINGLES.ODF() not in rsc:
@@ -252,22 +264,22 @@ class PpcOdfUpdater(OdfUpdater):
                 relevant_ppcs = find_ppcs(ppcs, xml_id, par)
 
                 if not relevant_ppcs:
-                    if not has_ppc:
-                        club = par.find(".//EventEntry[@Code='CLUB'][@Pos='2']").attrib["Value"]
-                        organisation = par.attrib["Organisation"] if "Organisation" in par.attrib else ""
-                        logger.error(f"Unable to find PPC for: {name} ({organisation} | {club})")
+                    club = par.find(".//EventEntry[@Code='CLUB'][@Pos='2']").attrib["Value"]
+                    organisation = par.attrib["Organisation"] if "Organisation" in par.attrib else ""
+                    logger.error(f"Unable to find PPC for: {name} ({organisation} | {club})")
+                    skipped_participants_no_ppc.append(f"{name} - {rsc}")
                     continue
 
                 if len(relevant_ppcs) > 1:
-                    if not has_ppc:
-                        logger.warning(f"Ambiguous ppcs found for: {name}")
-                        for ppc in relevant_ppcs:
-                            logger.warning(ppc.path)
+                    logger.warning(f"Ambiguous ppcs found for: {name}")
+                    for ppc in relevant_ppcs:
+                        logger.warning(ppc.path)
+                    skipped_participants_ambiguous.append(f"{name} - {rsc}")
                     continue
 
                 assert len(relevant_ppcs) == 1
 
-                logger.debug(f"Found PPC for: {name}")
+                logger.info("Found PPC for: %s", name)
 
                 ppc = relevant_ppcs[0]
                 for element_list, odf_segment_name in zip(
@@ -289,9 +301,18 @@ class PpcOdfUpdater(OdfUpdater):
 
         # check for unused ppcs
         unused_ppcs = {ppc.path for ppc in ppcs} - {ppc.path for ppc in used_ppcs}
-        logger.warning("Unused files:")
-        for ppc in unused_ppcs:
-            logger.warning(ppc.name)
+        if unused_ppcs:
+            logger.warning("Unused files:")
+            for ppc in unused_ppcs:
+                logger.warning(ppc.name)
+
+        logger.info("-" * 40)
+        logger.info("ODF Update Summary")
+        logger.info("Used PPCs: %d", len(used_ppcs))
+        logger.info("Skipped participants with no valid PPC: %d", len(skipped_participants_no_ppc))
+        logger.info("Skipped participants with ambiguous PPC files: %d", len(skipped_participants_ambiguous))
+        logger.info("Skipped participants with existing PPC entries in DT_PARTIC: %d", len(skipped_participants_has_ppc))
+        logger.info("Skipped participants with no event in DT_PARTIC: %d", len(skipped_participants_no_event))
 
 
 if __name__ == '__main__':

@@ -187,7 +187,22 @@ class PPCConverterFrame(tk.Frame):
             return
 
         try:
-            ppcs = self.parser.ppcs_parse_dir(ppc_dir)
+            logger.info("Start parsing PPC files in directory: %s", ppc_dir)
+            ppcs, file_paths_with_error = self.parser.ppcs_parse_dir(ppc_dir)
+
+            if file_paths_with_error:
+                logger.error("Unable to parse following files:")
+                for file_path in file_paths_with_error:
+                    logger.error(file_path.name)
+                logger.error("Failed to parse %d files.", len(file_paths_with_error))
+
+            if not ppcs:
+                logger.error("No valid PPC files found in directory: %s", ppc_dir)
+                return
+
+            logger.info("Found %d valid PPC files.", len(ppcs))
+            logger.info("-" * 40)
+            logger.info("Start updating ODF file: %s", odf_path)
             with PpcOdfUpdater(odf_path) as updater:
                 updater.update(ppcs)
         except:
@@ -417,8 +432,6 @@ class LogFrame(tk.Frame):
                 log.setLevel(level)
 
     def build_gui(self):
-        # self.pack(fill='both', expand=True, padx=10, pady=10)
-
         self.label = tk.Label(self, text="Log-Ausgabe")
         self.label.pack(side="top")
 
@@ -429,19 +442,26 @@ class LogFrame(tk.Frame):
         # make text copyable
         self.text_box.bind("<Key>", lambda e: ctrlEvent(e, self.master))
 
+        # mono space font for text box
         self.text_box.configure(font='TkFixedFont')
 
+        # add button to clear the log
+        button_clear = ttk.Button(self, text="Log leeren", command=lambda: self.text_box.delete(1.0, tk.END))
+        button_clear.pack(side="left", padx=10, pady=10)
+
+        # debug checkbox
         self.do_debug = tk.IntVar()
         self.check_debug = tk.Checkbutton(self, text="debug", variable=self.do_debug)
         self.check_debug.pack(side="right", padx=10)
         self.do_debug.trace_add("write", self.update_log_levels)
 
+        # Set the initial log level
+        self.do_debug.set(0)  # default to info
+
         # Create ui text widget Logger
         text_handler = TextHandler(self.text_box)
         text_handler.setFormatter(logging.Formatter('%(levelname)s: %(message)s'))
         logger.addHandler(text_handler)
-
-        self.update_log_levels()
 
 
 def main():
