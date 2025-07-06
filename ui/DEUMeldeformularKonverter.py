@@ -188,7 +188,7 @@ class PPCConverterFrame(tk.Frame):
 
         try:
             logger.info("Start parsing PPC files in directory: %s", ppc_dir)
-            ppcs, file_paths_with_error = self.parser.ppcs_parse_dir(ppc_dir)
+            ppcs, file_paths_with_error = self.parser.ppcs_parse_dir(ppc_dir, recursive=bool(self.recursive_var.get()))
 
             if file_paths_with_error:
                 logger.error("Unable to parse following files:")
@@ -238,6 +238,11 @@ class PPCConverterFrame(tk.Frame):
         self.button_choose_odf_file.grid(column=2, row=row_index, sticky='nsew', padx=10)
 
         row_index += 1
+
+        # add recursive checkbox
+        self.recursive_var = tk.IntVar(value=1)
+        self.recursive_checkbox = ttk.Checkbutton(self, text="PPCs in Unterverzeichnissen suchen", variable=self.recursive_var)
+        self.recursive_checkbox.grid(column=0, row=row_index, columnspan=3, sticky='nw', padx=10)
 
         # Convert button
         button_convert = ttk.Button(self, text='Konvertieren', command=self.logic)
