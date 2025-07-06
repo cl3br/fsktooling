@@ -1,15 +1,18 @@
 # go through the fsm database, extract start list information and write them to csv
+from pathlib import Path
+
 import mysql.connector
 
-from fsklib.output import ParticipantCsvOutput
 from fsklib import model
+from fsklib.output import ParticipantCsvOutput
 
-con = mysql.connector.connect(user='sa', password='fsmanager', host='127.0.0.1', database='sccp25')
+con = mysql.connector.connect(user='sa', password='fsmanager', host='127.0.0.1', database='test')
 
 cursor = con.cursor()
 
-csv = ParticipantCsvOutput('starting_order_sccp25_new.csv')
+csv = ParticipantCsvOutput(Path('starting_order.csv'))
 
+participant: model.ParticipantBase
 # loop over segments (including category info) sorted by start date
 cursor.execute("SELECT segment.Id, segment.Name, segment.ShortName, segment.SegmentType, category.Name, category.Level, category.Type, category.SortOrder "
                 "FROM segment "
@@ -19,9 +22,16 @@ cursor.execute("SELECT segment.Id, segment.Name, segment.ShortName, segment.Segm
 for (seg_id, seg_name, seg_short_name, seg_type, cat_name, cat_level, cat_type, cat_order) in list(cursor):
     print(f"{cat_name} - {seg_name}")
     cat_type = model.CategoryType.from_value(cat_type, model.DataSource.FSM)
+    if cat_type is None:
+        cat_type = model.CategoryType.WOMEN
     cat_level = model.CategoryLevel.from_value(cat_level, model.DataSource.FSM)
-    cat = model.Category(cat_name, cat_type, cat_level, cat_type.to_gender(), cat_order)
-    seg = model.Segment(seg_name, seg_short_name, model.SegmentType.from_value(seg_type, model.DataSource.FSM))
+    if cat_level is None:
+        cat_level = model.CategoryLevel.SENIOR
+    seg_type = model.SegmentType.from_value(seg_type, model.DataSource.FSM)
+    if seg_type is None:
+        seg_type = model.SegmentType.FP
+    seg = model.Segment(seg_name, seg_short_name, seg_type)
+    cat = model.Category(cat_name, cat_type, cat_level, cat_type.to_gender(), (seg, ), cat_order)
 
     # singles
     if cat_type in [model.CategoryType.MEN, model.CategoryType.WOMEN]:
@@ -37,8 +47,8 @@ for (seg_id, seg_name, seg_short_name, seg_type, cat_name, cat_level, cat_type, 
         for (id, first_name, last_name, bday, gender, nation, club_name, club_abbr, start_number) in cursor:
             print("%d - %s %s" % (start_number, first_name, last_name))
             club = model.Club(club_name, club_abbr, nation)
-            couple = model.Person(id, last_name, first_name, model.Gender.from_value(gender, model.DataSource.FSM), bday, club)
-            participant = model.ParticipantSingle(couple, cat)
+            person = model.Person(id, last_name, first_name, model.Gender.from_value(gender, model.DataSource.FSM), bday, club)
+            participant = model.ParticipantSingle(cat, person, model.Role.ATHLETE)
             csv.add_participant_with_segment_start_number(participant, seg, start_number)
 
     # pairs / ice dance
@@ -62,7 +72,7 @@ for (seg_id, seg_name, seg_short_name, seg_type, cat_name, cat_level, cat_type, 
             partner1 = model.Person(id1, last_name1, first_name1, model.Gender.from_value(gender1, model.DataSource.FSM), bday1, club1)
             partner2 = model.Person(id2, last_name2, first_name2, model.Gender.from_value(gender2, model.DataSource.FSM), bday2, club2)
             couple = model.Couple(partner1, partner2)
-            participant = model.ParticipantCouple(couple, cat)
+            participant = model.ParticipantCouple(cat, couple, model.Role.ATHLETE)
             csv.add_participant_with_segment_start_number(participant, seg, start_number)
 
     # synchron
@@ -79,7 +89,7 @@ for (seg_id, seg_name, seg_short_name, seg_type, cat_name, cat_level, cat_type, 
             print("%d - %s" % (start_number, name))
             club = model.Club(club_name, club_abbr, nation)
             sys_team = model.Team(id, name, club, [])
-            participant = model.ParticipantTeam(sys_team, cat)
+            participant = model.ParticipantTeam(cat, sys_team, model.Role.ATHLETE)
             csv.add_participant_with_segment_start_number(participant, seg, start_number)
 
 

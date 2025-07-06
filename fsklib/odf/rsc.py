@@ -6,7 +6,10 @@ class RSC:
 
         code = "FSK" + category.gender.ODF() + category.type.ODF()
         code += "-" * (12 - len(code))
-        code += category.level.ODF()
+        if isinstance(category.level, str):
+            code += category.level
+        elif isinstance(category.level, model.CategoryLevel):
+            code += category.level.ODF()
         code += "-" * (20 - len(code))
         code += "%02d" % category.number if category.number else "--"
 
