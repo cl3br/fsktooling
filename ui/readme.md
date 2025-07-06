@@ -71,6 +71,22 @@ welches vom FS Manager gelesen werden kann.
         * während der Konvertierung des Meldeformulars wird neben der ausgewählten Excel-Datei der Ordner `website` erstellt
         * kopiere `website/*.pdf` neben die `index.html` des entsprechenden Wettbewerbs
 
+### Anleitung zum Einlesen von PPC-Daten
+1. Im FS Manager
+    - DT_PARTIC-Datei exportieren
+        * People > Export People
+        * DT_PARTIC-Datei wird standardmäßig in folgendem Verzeichnis abgelegt:
+            [FSM-Verzeichnis]/Export/[Competition-Name]/ODF/
+2. Im DEUMeldeformularKonverter
+    - Tab "PPC-Konverter" auswählen
+    - Ordner mit PPC-PDF-Dateien auswählen
+    - Exportierte DT_PARTIC-Datei auswählen
+    - "Konvertieren" drücken
+3. Im FS Manager
+    - DT_PARTIC-Datei importieren 
+        * People > Import > Only Planned Elements (PPC)
+        * Erzeugte `DT_PARTIC_with_ppc.xml` auswählen
+
 ### Anleitung zum Auslesen der Ergebnisse eines Wettbewerbes
 1. Zum Tab "FSM-Datenbank auslesen" wechseln
 2. Ausgabe-Datei auswählen
