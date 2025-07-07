@@ -94,7 +94,7 @@ Neuköllner Sportfreunde 1907 e.V.;NSF;BER
 Sport Club Charlottenburg e.V.;SCC;BER
 Sportclub Berlin e.V.;SCBE;BER
 Weddinger ERC e.V. Berlin;WERC;BER
-ATSV 1860 Bremen;ATSV;BRE
+Bremen 1860;BREME;BRE
 ERB Bremen e.V.;ERBB;BRE
 REV Bremerhaven e.V.;REVB;BRE
 SC Bremerhaven von 1997 e.V.;SCBR;BRE
@@ -109,7 +109,6 @@ Eislaufclub Frankfurt e.V.;ECF;HES
 Frankfurter REC e.V.;FREC;HES
 FTG Frankfurt;FTG;HES
 LSC Bad Nauheim e.V.;LSCBN;HES
-Makkabi Frankfurt;MAKF;HES
 RSC Wiesbaden 1955 e.V.;RSCW;HES
 Ski Club Usseln e.V.;SCUS;HES
 TGS Vorwärts 1874 Frankfurt e.V.;TGSV;HES
@@ -122,6 +121,7 @@ Sportverein am Salzgittersee e.V.;SVAS;NIE
 SV Glück Auf 1901 Gebhardshagen e.V.;SVGA;NIE
 Turn-Club Bissendorf e.V.;TCBI;NIE
 TV Jahn Wolfsburg e.V.;TVJW;NIE
+VfB Salzgitter e.V.;VFBSG;NIE
 DSC Arminia Bielefeld e.V.;DSCAB;NRW
 Duisburger SC Kaiserberg 1947 e.V.;DSCK;NRW
 Düsseldorfer EG Eiskunstlauf e.V.;DEGD;NRW
@@ -135,7 +135,7 @@ EisSportVerein Niederrhein e.V.;ESVN;NRW
 ERC Bergkamen 1984 e.V.;ERCBE;NRW
 ERC Westf. Kunstlauf Dortmund e.V.;ERCW;NRW
 ESG Iserlohn e.V.;ESGI;NRW
-Essener Jugend Eiskunstl.-Verein e.V;EJEKL;NRW
+Essener Jugend Eiskunstl.-Verein e.V;EJE;NRW
 Figure Skating Club Dinslaken e.V.;FSCD;NRW
 Grafschafter SC Moers e.V.;GSCM;NRW
 Grefrather Schlitttschuh-Klub e.V.;GREF;NRW
@@ -165,6 +165,7 @@ Hallescher Eissport Club e.V.;HEC;SAH
 Chemnitzer Eislauf-Club e.V.;CEC;SAS
 Dresdner Eislauf-Club e.V.;DREC;SAS
 Leipziger Eissport-Club e.V.;LEC;SAS
+Schönheider Wölfe e.V.;SHW;SAS
 SV Felsenkeller Dresden e.V.;SVFD;SAS
 USG Chemnitz e.V.;USGC;SAS
 EC Ilmenau e.V.;ECIL;THR
