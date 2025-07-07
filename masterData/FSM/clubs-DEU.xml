@@ -94,7 +94,7 @@
     <Club CLUB_NAME="Sport Club Charlottenburg e.V." CLUB_SHORT_NAME="SCC" />
     <Club CLUB_NAME="Sportclub Berlin e.V." CLUB_SHORT_NAME="SCBE" />
     <Club CLUB_NAME="Weddinger ERC e.V. Berlin" CLUB_SHORT_NAME="WERC" />
-    <Club CLUB_NAME="ATSV 1860 Bremen" CLUB_SHORT_NAME="ATSV" />
+    <Club CLUB_NAME="Bremen 1860" CLUB_SHORT_NAME="BREME" />
     <Club CLUB_NAME="ERB Bremen e.V." CLUB_SHORT_NAME="ERBB" />
     <Club CLUB_NAME="REV Bremerhaven e.V." CLUB_SHORT_NAME="REVB" />
     <Club CLUB_NAME="SC Bremerhaven von 1997 e.V." CLUB_SHORT_NAME="SCBR" />
@@ -109,11 +109,11 @@
     <Club CLUB_NAME="Frankfurter REC e.V." CLUB_SHORT_NAME="FREC" />
     <Club CLUB_NAME="FTG Frankfurt" CLUB_SHORT_NAME="FTG" />
     <Club CLUB_NAME="LSC Bad Nauheim e.V." CLUB_SHORT_NAME="LSCBN" />
-    <Club CLUB_NAME="Makkabi Frankfurt" CLUB_SHORT_NAME="MAKF" />
     <Club CLUB_NAME="RSC Wiesbaden 1955 e.V." CLUB_SHORT_NAME="RSCW" />
     <Club CLUB_NAME="Ski Club Usseln e.V." CLUB_SHORT_NAME="SCUS" />
     <Club CLUB_NAME="TGS Vorwärts 1874 Frankfurt e.V." CLUB_SHORT_NAME="TGSV" />
     <Club CLUB_NAME="TSG Darmstadt 1846 e.V." CLUB_SHORT_NAME="TSGD" />
+    <Club CLUB_NAME="TuS Makkabi Frankfurt e.V." CLUB_SHORT_NAME="MAKF" />
     <Club CLUB_NAME="EC Hannover Indians e.V." CLUB_SHORT_NAME="ECHAI" />
     <Club CLUB_NAME="EC Pferdeturm Hunters e.V." CLUB_SHORT_NAME="ECPFE" />
     <Club CLUB_NAME="ESC Wedemark Scorpions e.V." CLUB_SHORT_NAME="ESCWS" />
@@ -121,6 +121,7 @@
     <Club CLUB_NAME="SV Glück Auf 1901 Gebhardshagen e.V." CLUB_SHORT_NAME="SVGA" />
     <Club CLUB_NAME="Turn-Club Bissendorf e.V." CLUB_SHORT_NAME="TCBI" />
     <Club CLUB_NAME="TV Jahn Wolfsburg e.V." CLUB_SHORT_NAME="TVJW" />
+    <Club CLUB_NAME="VfB Salzgitter e.V." CLUB_SHORT_NAME="VFBSG" />
     <Club CLUB_NAME="DSC Arminia Bielefeld e.V." CLUB_SHORT_NAME="DSCAB" />
     <Club CLUB_NAME="Duisburger SC Kaiserberg 1947 e.V." CLUB_SHORT_NAME="DSCK" />
     <Club CLUB_NAME="Düsseldorfer EG Eiskunstlauf e.V." CLUB_SHORT_NAME="DEGD" />
@@ -134,7 +135,7 @@
     <Club CLUB_NAME="ERC Bergkamen 1984 e.V." CLUB_SHORT_NAME="ERCBE" />
     <Club CLUB_NAME="ERC Westf. Kunstlauf Dortmund e.V." CLUB_SHORT_NAME="ERCW" />
     <Club CLUB_NAME="ESG Iserlohn e.V." CLUB_SHORT_NAME="ESGI" />
-    <Club CLUB_NAME="Essener Jugend Eiskunstl.-Verein e.V" CLUB_SHORT_NAME="EJEKL" />
+    <Club CLUB_NAME="Essener Jugend Eiskunstl.-Verein e.V" CLUB_SHORT_NAME="EJE" />
     <Club CLUB_NAME="Figure Skating Club Dinslaken e.V." CLUB_SHORT_NAME="FSCD" />
     <Club CLUB_NAME="Grafschafter SC Moers e.V." CLUB_SHORT_NAME="GSCM" />
     <Club CLUB_NAME="Grefrather Schlitttschuh-Klub e.V." CLUB_SHORT_NAME="GREF" />
@@ -163,8 +164,8 @@
     <Club CLUB_NAME="Hallescher Eissport Club e.V." CLUB_SHORT_NAME="HEC" />
     <Club CLUB_NAME="Chemnitzer Eislauf-Club e.V." CLUB_SHORT_NAME="CEC" />
     <Club CLUB_NAME="Dresdner Eislauf-Club e.V." CLUB_SHORT_NAME="DREC" />
-    <Club CLUB_NAME="Hainberger SV Greiz e.V." CLUB_SHORT_NAME="HSVG" />
     <Club CLUB_NAME="Leipziger Eissport-Club e.V." CLUB_SHORT_NAME="LEC" />
+    <Club CLUB_NAME="Schönheider Wölfe e.V." CLUB_SHORT_NAME="SHW" />
     <Club CLUB_NAME="SV Felsenkeller Dresden e.V." CLUB_SHORT_NAME="SVFD" />
     <Club CLUB_NAME="USG Chemnitz e.V." CLUB_SHORT_NAME="USGC" />
     <Club CLUB_NAME="EC Ilmenau e.V." CLUB_SHORT_NAME="ECIL" />
