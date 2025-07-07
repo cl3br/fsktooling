@@ -1,4 +1,5 @@
-import csv, codecs
+import codecs
+import csv
 
 csv_file_path = "masterData/csv/clubs-DEU.csv"
 xml_output_file_path_FSM = "masterData/FSM/clubs-DEU.xml"
@@ -11,7 +12,6 @@ err = False
 with open(csv_file_path, 'r', encoding="utf-8") as fi:
     r = csv.DictReader(fi, delimiter=';')
     for row in r:
-        id = str(row['ID'])
         name = str(row['Name'])
         abbr = str(row['Abk.'])
         region = str(row['Region'])

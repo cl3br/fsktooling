@@ -1,4 +1,5 @@
-import csv, codecs
+import codecs
+import csv
 
 csv_file_path = "masterData/csv/nations-DEU-Landesverbaende.csv"
 xml_output_file_path = "masterData/FSM/nations-DEU-Landesverbaende.xml"
@@ -21,8 +22,8 @@ with open(csv_file_path, 'r') as fi:
                        "NAT_LOGO=\"\" />\n" \
                        % (id, abb, abb, name, abb)
 
-xml_content+= "  </Nation_List>\n" \
-              "</ISUCalcFS>\n"
+xml_content += "  </Nation_List>\n" \
+               "</ISUCalcFS>\n"
 
 with codecs.open(xml_output_file_path, 'w', "utf-8") as fo:
     fo.write(xml_content)
