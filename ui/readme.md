@@ -18,7 +18,7 @@ welches vom FS Manager gelesen werden kann.
 2. Im DEUMeldeformularKonverter
     - Excel-Datei auswählen
     - auf konvertieren klicken
-    - neben dem ausgewählten Meldeformular werden die ODF-Dateien `DT_PARTIC.xml` und `DT_PARTIC_TEAM.xml` generiert 
+    - neben dem ausgewählten Meldeformular werden die ODF-Dateien `DT_PARTIC.xml` und `DT_PARTIC_TEAM.xml` generiert
 3. Im FS Manager
     - neue Datenbank erstellen
     - Elemente aus FSM masterData einlesen
@@ -80,6 +80,7 @@ welches vom FS Manager gelesen werden kann.
 2. Im DEUMeldeformularKonverter
     - Tab "PPC-Konverter" auswählen
     - Ordner mit PPC-PDF-Dateien auswählen
+        - PDF-Formular: siehe `./masterData/PPC/`
     - Exportierte DT_PARTIC-Datei auswählen
     - "Konvertieren" drücken
 3. Im FS Manager
