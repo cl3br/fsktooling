@@ -18,7 +18,7 @@ welches vom FS Manager gelesen werden kann.
 2. Im DEUMeldeformularKonverter
     - Excel-Datei auswählen
     - auf konvertieren klicken
-    - neben dem ausgewählten Meldeformular werden die ODF-Dateien `DT_PARTIC.xml` und `DT_PARTIC_TEAM.xml` generiert 
+    - neben dem ausgewählten Meldeformular werden die ODF-Dateien `DT_PARTIC.xml` und `DT_PARTIC_TEAM.xml` generiert
 3. Im FS Manager
     - neue Datenbank erstellen
     - Elemente aus FSM masterData einlesen
@@ -71,6 +71,23 @@ welches vom FS Manager gelesen werden kann.
         * während der Konvertierung des Meldeformulars wird neben der ausgewählten Excel-Datei der Ordner `website` erstellt
         * kopiere `website/*.pdf` neben die `index.html` des entsprechenden Wettbewerbs
 
+### Anleitung zum Einlesen von PPC-Daten
+1. Im FS Manager
+    - DT_PARTIC-Datei exportieren
+        * People > Export People
+        * DT_PARTIC-Datei wird standardmäßig in folgendem Verzeichnis abgelegt:
+            [FSM-Verzeichnis]/Export/[Competition-Name]/ODF/
+2. Im DEUMeldeformularKonverter
+    - Tab "PPC-Konverter" auswählen
+    - Ordner mit PPC-PDF-Dateien auswählen
+        - PDF-Formular: siehe `./masterData/PPC/`
+    - Exportierte DT_PARTIC-Datei auswählen
+    - "Konvertieren" drücken
+3. Im FS Manager
+    - DT_PARTIC-Datei importieren 
+        * People > Import > Only Planned Elements (PPC)
+        * Erzeugte `DT_PARTIC_with_ppc.xml` auswählen
+
 ### Anleitung zum Auslesen der Ergebnisse eines Wettbewerbes
 1. Zum Tab "FSM-Datenbank auslesen" wechseln
 2. Ausgabe-Datei auswählen
@@ -84,8 +101,9 @@ welches vom FS Manager gelesen werden kann.
 2. Nachwuchsklasse wird "Advanced Novice" zugeordnet
     - "Basic Novice" -> beginnt der Kategoriename mit "Basic Novice"
     - "Intermediate Novice" -> beginnt der Kategoriename mit "Intermediate Novice"
-    - alternativ kann die Spalte Kategorie wie oben unter "1. Im Excel-Meldeformular" beschrieben, angepasst werden
+    - alternativ kann die Spalte "Kategorie" wie oben unter "1. Im Excel-Meldeformular" beschrieben, angepasst werden
 3. Jugendklasse wird der Juniorenklasse zugeordnet -> die Verifikation für das Kurzprogramm muss noch von Hand entfernt werden
 4. Synchron-Kategorien werden aktuell nicht von FSM importiert und müssen von Hand angelegt werden
 5. Synchronteams können keine Athleten zugeordnet werden
 6. Gibt es zwei Kategorien mit exakt dem selben Namen im Wettbewerb (Unterschied ist beispielsweise nur durch das Segment erkennbar - z.B. Women Bronze I - Free Skating und Women Bronze I - Artistic Free Skating), dann wird nur das Ergebnis der Kategorie exportiert, welche als letztes durchgeführt wurde.
+7. Das Einlesen von PPC-Daten für Paare, Eistänzer und Synchron-Teams wird aktuell noch nicht unterstützt.

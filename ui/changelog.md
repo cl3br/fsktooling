@@ -1,17 +1,25 @@
 # Changelog
 
-## v0.3.3
-- accept more category types: ISU category names or ODF/RSC abbreviations
-- accept custom category levels by specifying alphabetic category name with a maximum of 6 letters
-- couples can participate in multiple categories
-- support for solo dance starting from FSM 1.8.9 ("solo" must be part of the category name)
-- update clubs and officials for season 24/25
-- crop flags for website to a common width
-- convert couples with unkwown ids (e.g. 888888 or 999999)
-- make log messages copyable
-- update to Python 3.12
+## v0.4.0
+- converter
+    - accept more category types: ISU category names or ODF/RSC abbreviations
+    - accept custom category levels by specifying alphabetic category name with a maximum of 6 letters
+    - couples can participate in multiple categories
+    - support for solo dance starting from FSM 1.8.9 ("solo" must be part of the category name)
+    - convert couples with unkwown ids (e.g. 888888 or 999999)
+- UI
+    - add PPC converter
+    - show log messages for all frames
+    - make log messages copyable
+    - advanced log options (clear log, show debug messages)
+    - add port option for data base connection (result extraction)
+- misc
+    - update clubs and officials for season 24/25
+    - crop flags for website to a common width
+    - update to Python 3.12
 - bugfixes:
     - always use specified file name for result extraction
+    - properly update data base drop down menus for result extraction
 
 ## v0.3.2
 - bugfixes:

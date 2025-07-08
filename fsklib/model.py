@@ -216,8 +216,11 @@ class ParticipantBaseDefaults:
 class ParticipantSingleBase(ParticipantBase):
     person: Person
 
-    def get_normalized_name(self) -> str:
-        return normalize_string(self.person.first_name + self.person.family_name)
+    def get_normalized_name(self, reverse=False) -> str:
+        if reverse:
+            return normalize_string(self.person.family_name + self.person.first_name)
+        else:
+            return normalize_string(self.person.first_name + self.person.family_name)
 
 
 @dataclass

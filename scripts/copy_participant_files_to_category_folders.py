@@ -393,7 +393,7 @@ if __name__ == "__main__":
         fieldnames = participants_out[0].keys()
         output_file_path = os.path.join(output_root_dir, 'participants.csv')
         with open(output_file_path, 'w', encoding="utf-8", newline='') as csv_file:
-            print("Writing csv file '%s'\n" %  output_file_path)
+            print("Writing csv file '%s'\n" % output_file_path)
             writer = csv.DictWriter(csv_file, fieldnames)
             writer.writeheader()
             writer.writerows(participants_out)
