@@ -1,6 +1,7 @@
 import logging
-import pathlib
 import sys
+from pathlib import Path
+from typing import Callable, List
 
 try:
     import tkinter as tk  # Python 3.x
@@ -19,16 +20,45 @@ from fsklib.deuxlsxforms import ConvertedOutputType, DEUMeldeformularXLSX
 from fsklib.fsm.result import extract
 from fsklib.output import (EmptySegmentPdfOutput, OdfParticOutput,
                            ParticipantCsvOutput)
+from fsklib.ppc import PdfParser, PdfParserFunctionDeu, PpcOdfUpdater
+from fsklib.utils.logging_helper import get_logger
 
 
-def root_dir() -> pathlib.Path:
+def root_dir() -> Path:
     if getattr(sys, 'frozen', False):
-        return pathlib.Path(sys.executable).parent
-    return pathlib.Path(__file__).resolve().parent.parent
+        return Path(sys.executable).parent
+    return Path(__file__).resolve().parent.parent
 
 
-def master_data_dir() -> pathlib.Path:
+def master_data_dir() -> Path:
     return root_dir() / "masterData"
+
+
+def file_dialog(file_extensions: List[str], open_mode: str, function: Callable, initial_path: Path):
+    # show the open file dialog
+    initial_dir = initial_path.resolve()
+    if not initial_dir.exists() or initial_dir.is_file():
+        initial_dir = initial_dir.parent
+    kwargs = {}
+    if initial_dir.exists():
+        kwargs["initialdir"] = initial_dir
+
+    if open_mode == 'r':
+        f = filedialog.askopenfilename(filetypes=file_extensions, **kwargs)
+    elif open_mode == 'w':
+        f = filedialog.asksaveasfilename(filetypes=file_extensions, **kwargs)
+    elif open_mode == 'd':
+        f = filedialog.askdirectory(**kwargs)
+    function(f)
+
+
+# Create global logger object and add a file handler
+logger = get_logger(__name__, __file__)
+logger.setLevel(logging.INFO)
+
+file_handler = logging.FileHandler(filename=f'{logger.name}.log')
+file_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+logger.addHandler(file_handler)
 
 
 class TextHandler(logging.Handler):
@@ -52,47 +82,28 @@ class TextHandler(logging.Handler):
         self.text.after(0, append)
 
 
-# ensure that text is not editable, but copyable
-def ctrlEvent(event, root):
-    if event.state == 4:
-        if event.keysym == 'c':
-            content = event.widget.selection_get()
-            root.clipboard_clear()
-            root.clipboard_append(content)
-            return
-    return "break"
-
-
-class converterUI(tk.Frame):
+class XLSXConverterFrame(tk.Frame):
     # This class defines the graphical user interface
 
     def __init__(self, parent, *args, **kwargs):
         tk.Frame.__init__(self, parent, *args, **kwargs)
-        self.input_xlsx_path = pathlib.Path()
+        self.input_xlsx_path = Path()
         self.build_gui()
-
-    def file_dialog(self, file_extensions, file_type, function):
-        # show the open file dialog
-        if file_type == 'r':
-            f = filedialog.askopenfilename(filetypes=file_extensions)
-        else:
-            f = filedialog.asksaveasfilename(filetypes=file_extensions)
-        function(f)
 
     def open_xlsx(self, file_name):
         self.input.delete(0, tk.END)
-        self.input_xlsx_path = pathlib.Path(file_name)
+        self.input_xlsx_path = Path(file_name)
         self.input.insert(0, self.input_xlsx_path)
 
     def file_dialog_set_text(self, file_extensions, file_type):
-        self.file_dialog(file_extensions, file_type, self.open_xlsx)
+        file_dialog(file_extensions, file_type, self.open_xlsx, self.input_xlsx_path)
 
     def logic(self):
         if not self.input_xlsx_path:
-            logging.info('Fehler: Meldeformular-Datei auswählen!')
+            logger.error('Meldeformular-Datei auswählen!')
             return
 
-        logging.info("Meldeformular einlesen")
+        logger.info("Meldeformular einlesen")
         try:
             deu_xlsx = DEUMeldeformularXLSX(self.input_xlsx_path)
             deu_xlsx.convert()
@@ -102,13 +113,13 @@ class converterUI(tk.Frame):
             deu_categories_csv = deu_xlsx.get_output_files(ConvertedOutputType.EVENT_CATERGORIES)[0]
 
             if not deu_event_info_csv or not deu_persons_csv or not deu_categories_csv:
-                logging.error("Nicht alle notwendigen Informationen konnten aus dem Meldeformular gelesen werden.")
+                logger.error("Nicht alle notwendigen Informationen konnten aus dem Meldeformular gelesen werden.")
                 return
         except:
-            logging.error("Das Meldeformular konnte nicht korrekt eingelesen werden.")
+            logger.exception("Das Meldeformular konnte nicht korrekt eingelesen werden.")
             return
 
-        logging.info("Generiere ODF-Dateien...")
+        logger.info("Generiere ODF-Dateien...")
 
         output_path = self.input_xlsx_path.parent
         deu_csv = DeuMeldeformularCsv()
@@ -121,24 +132,15 @@ class converterUI(tk.Frame):
                          EmptySegmentPdfOutput(output_path / "website", master_data_dir() / "FSM" / "website" / "empty.pdf")]
                        )
 
-        logging.info("Fertig!")
-        logging.info("Generierte Dateien befinden sich hier: %s" % str(self.input_xlsx_path.parent))
+        logger.info("Fertig!")
+        logger.info("Generierte Dateien befinden sich hier: %s" % str(self.input_xlsx_path.parent))
 
     def convert_callback(self):
         self.logic()
-        # if not self.input_xlsx_path:
-        #     logging.info('Choose input file')
-        #     return
-
-        # save_file_extensions = (
-        #     ('XML-Datei', '*.xml'),
-        #     ('All files', '*.*')
-        # )
-        # self.file_dialog(save_file_extensions, 'w', self.logic)
 
     def build_gui(self):
         # Build GUI
-        self.pack(fill = 'both', expand = True, padx = 10, pady = 10)
+        self.pack(fill='both', expand=True, padx=10, pady=10)
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(2, weight=1)
 
@@ -152,66 +154,124 @@ class converterUI(tk.Frame):
         self.input.grid(column=0, row=0, sticky='nsew')
         self.input.insert(0, 'DEU Meldeformular (.xlsx)')
         self.open_xlsx(self.input.get())
-        button = ttk.Button(self, text="Auswählen", command=lambda: self.file_dialog_set_text(file_extensions, "r") )
+        button = ttk.Button(self, text="Auswählen", command=lambda: self.file_dialog_set_text(file_extensions, "r"))
         button.grid(column=1, row=0, sticky='nsew', padx=10)
 
-        label = tk.Label(self, text="Log-Ausgabe")
-        label.grid(column=0, row=1, sticky='nw')
-
-        # Add text widget to display logging info
-        st = ScrolledText.ScrolledText(self, state='normal')
-
-        # make text copyable
-        st.bind("<Key>", lambda e: ctrlEvent(e, self))
-
-        st.configure(font='TkFixedFont')
-        st.grid(column=0, row=2, sticky='nsew', columnspan=2)
-
         button_convert = ttk.Button(self, text='Konvertieren', command=self.convert_callback)
-        button_convert.grid(column=1, row=3, sticky='e', padx=10, pady=10)
-
-        # Create textLogger
-        text_handler = TextHandler(st)
-
-        # Logging configuration
-        ui_name = pathlib.Path(__file__).stem
-        logging.basicConfig(filename=f'{ui_name}.log',
-            level=logging.INFO,
-            format='%(asctime)s - %(levelname)s - %(message)s')
-
-        # Add the handler to logger
-        logger = logging.getLogger()
-        logger.addHandler(text_handler)
+        button_convert.grid(column=1, row=1, sticky='se', padx=10, pady=10)
 
 
-class databaseExtractorUI(tk.Frame):
+class PPCConverterFrame(tk.Frame):
+    def __init__(self, parent, *args, **kwargs):
+        tk.Frame.__init__(self, parent, *args, **kwargs)
+        self.parser = PdfParser(PdfParserFunctionDeu())
+        self.build_gui()
+
+    def set_ppc_dir(self, file_name):
+        self.input_ppc_dir.delete(0, tk.END)
+        self.input_ppc_dir.insert(0, file_name)
+
+    def set_odf_path(self, file_name):
+        self.input_odf_path.delete(0, tk.END)
+        self.input_odf_path.insert(0, file_name)
+
+    def logic(self):
+        ppc_dir = Path(self.input_ppc_dir.get())
+        if not ppc_dir.is_dir():
+            logger.error("Unable to find PPC files. '%s' is not a directory.", str(ppc_dir))
+            return
+
+        odf_path = Path(self.input_odf_path.get())
+        if not odf_path.is_file():
+            logger.error("Unable to open DT_PARTIC xml file. '%s' is not a file.", str(odf_path))
+            return
+
+        try:
+            logger.info("Start parsing PPC files in directory: %s", ppc_dir)
+            ppcs, file_paths_with_error = self.parser.ppcs_parse_dir(ppc_dir, recursive=bool(self.recursive_var.get()))
+
+            if file_paths_with_error:
+                logger.error("Unable to parse following files:")
+                for file_path in file_paths_with_error:
+                    logger.error(file_path.name)
+                logger.error("Failed to parse %d files.", len(file_paths_with_error))
+
+            if not ppcs:
+                logger.error("No valid PPC files found in directory: %s", ppc_dir)
+                return
+
+            logger.info("Found %d valid PPC files.", len(ppcs))
+            logger.info("-" * 40)
+            logger.info("Start updating ODF file: %s", odf_path)
+            with PpcOdfUpdater(odf_path) as updater:
+                updater.update(ppcs)
+        except:
+            logger.exception("Error in parsing PPC files or updating ODF file.")
+
+    def build_gui(self):
+        self.pack(fill='both', expand=True, padx=10, pady=10)
+        self.grid_columnconfigure(0, weight=1)
+
+        row_index = 0
+
+        # PPC directory selection
+        label_ppc_dir = tk.Label(self, text="PPC-Verzeichnis")
+        label_ppc_dir.grid(column=0, row=row_index, sticky='nw', padx=10)
+
+        self.ppc_dir = tk.StringVar(self, "")
+        self.input_ppc_dir = tk.Entry(self, textvariable=self.ppc_dir)
+        self.input_ppc_dir.grid(column=1, row=row_index, sticky='nsew', padx=10)
+
+        self.button_choose_ppc_dir = ttk.Button(self, text="Auswählen", command=lambda: file_dialog([], "d", self.set_ppc_dir, Path(self.input_ppc_dir.get())))
+        self.button_choose_ppc_dir.grid(column=2, row=row_index, sticky='nsew', padx=10)
+
+        row_index += 1
+
+        # ODF file selection
+        label_odf_file = tk.Label(self, text="DT_PARTIC XML-Datei")
+        label_odf_file.grid(column=0, row=row_index, sticky='nw', padx=10)
+
+        self.input_odf_path = tk.Entry(self)
+        self.input_odf_path.grid(column=1, row=row_index, sticky='nsew', padx=10)
+
+        self.button_choose_odf_file = ttk.Button(self, text="Auswählen", command=lambda: file_dialog([('XML-Datei', '*.xml'), ('All files', '*.*')], "r", self.set_odf_path, Path(self.input_odf_path.get())))
+        self.button_choose_odf_file.grid(column=2, row=row_index, sticky='nsew', padx=10)
+
+        row_index += 1
+
+        # add recursive checkbox
+        self.recursive_var = tk.IntVar(value=1)
+        self.recursive_checkbox = ttk.Checkbutton(self, text="PPCs in Unterverzeichnissen suchen", variable=self.recursive_var)
+        self.recursive_checkbox.grid(column=0, row=row_index, columnspan=3, sticky='nw', padx=10)
+
+        # Convert button
+        button_convert = ttk.Button(self, text='Konvertieren', command=self.logic)
+        button_convert.grid(column=2, row=row_index, sticky='se', padx=10, pady=10)
+
+        self.grid_rowconfigure(row_index, weight=1)
+
+
+class ResultExtractorFrame(tk.Frame):
     # This class defines the graphical user interface
 
     def __init__(self, parent, *args, **kwargs):
         tk.Frame.__init__(self, parent, *args, **kwargs)
-        self.input_xlsx_path = pathlib.Path()
+        self.input_xlsx_path = Path()
         self.build_gui()
-
-    def file_dialog(self, file_extensions, file_type, function):
-        # show the open file dialog
-        if file_type == 'r':
-            f = filedialog.askopenfilename(filetypes=file_extensions)
-        else:
-            f = filedialog.asksaveasfilename(filetypes=file_extensions)
-        function(f)
 
     def open_xlsx(self, file_name):
         self.input_output_file.delete(0, tk.END)
         self.input_output_file.insert(0, file_name)
 
-    def file_dialog_set_text(self, file_extensions, file_type):
-        self.file_dialog(file_extensions, file_type, self.open_xlsx)
-
     def logic(self):
-        con = self.get_database_connection()
-        con.cursor().execute(f"USE `{self.drop_db_selection.get()}`")
-        extract(con, self.input_output_file.get(), self.drop_comp_selection.get())
-        print(f"Ergebnisse nach {pathlib.Path(self.input_output_file.get()).resolve()} extrahiert!")
+        try:
+            con = self.get_database_connection()
+            con.cursor().execute(f"USE `{self.drop_db_selection.get()}`")
+            extract(con, self.input_output_file.get(), self.drop_comp_selection.get())
+        except:
+            logger.exception("Verbindung zur Datenbank kann nicht hergestellt werden. Bitte überprüfen Sie alle Einstellungen.")
+            return
+        logger.info(f"Ergebnisse nach {Path(self.input_output_file.get()).resolve()} extrahiert!")
 
     def extract_callback(self):
         self.open_xlsx(self.input_output_file.get())
@@ -229,9 +289,8 @@ class databaseExtractorUI(tk.Frame):
         if con:
             cursor = con.cursor()
             cursor.execute("SHOW DATABASES")
-            l = cursor.fetchall()
-            l = [ i[0] for i in l ]
-            return l
+            database_names = [i[0] for i in cursor.fetchall()]
+            return database_names
         else:
             return []
 
@@ -250,11 +309,10 @@ class databaseExtractorUI(tk.Frame):
             cursor = con.cursor()
             try:
                 cursor.execute("SELECT ShortName FROM competition")
-                l = cursor.fetchall()
-                l = [i[0] for i in l]
+                competition_names = [i[0] for i in cursor.fetchall()]
             except:
                 return []
-            return l
+            return competition_names
         else:
             return []
 
@@ -307,8 +365,8 @@ class databaseExtractorUI(tk.Frame):
 
         validation_cmd = (self.master.master.register(validate_integer), '%P')
 
-        button = ttk.Button(self, text="Auswählen", command=lambda: self.file_dialog_set_text(file_extensions, "w") )
-        self.input_output_file = self.add_row_to_layout(row_index, "Ausgabe-Datei", "Ergebnis.xlsx", button)
+        button = ttk.Button(self, text="Auswählen", command=lambda: file_dialog(file_extensions, "w", self.open_xlsx, Path(self.input_output_file.get())))
+        self.input_output_file = self.add_row_to_layout(row_index, "Ausgabe-Datei", "Ergebnis.xlsx", button=button)
         self.open_xlsx(self.input_output_file.get())
 
         row_index += 1  # next row in layout
@@ -354,19 +412,83 @@ class databaseExtractorUI(tk.Frame):
         self.grid_rowconfigure(row_index, weight=1)
 
 
+# ensure that text is not editable, but copyable
+def ctrlEvent(event, root):
+    if event.state == 4:
+        if event.keysym == 'c':
+            content = event.widget.selection_get()
+            root.clipboard_clear()
+            root.clipboard_append(content)
+            return
+    return "break"
+
+
+class LogFrame(tk.Frame):
+    def __init__(self, parent, *args, **kwargs):
+        tk.Frame.__init__(self, parent, *args, padx=10, pady=10, **kwargs)
+        self.build_gui()
+
+    def update_log_levels(self, *args):
+        is_debug = bool(self.do_debug.get())
+        level = logging.DEBUG if is_debug else logging.INFO
+        for name in logging.root.manager.loggerDict:
+            log = logging.getLogger(name)
+            if log.name.startswith(logger.name):
+                log.setLevel(level)
+
+    def build_gui(self):
+        self.label = tk.Label(self, text="Log-Ausgabe")
+        self.label.pack(side="top")
+
+        # Add text widget to display logging info
+        self.text_box = ScrolledText.ScrolledText(self, state='normal')
+        self.text_box.pack(fill="both", expand=True)
+
+        # make text copyable
+        self.text_box.bind("<Key>", lambda e: ctrlEvent(e, self.master))
+
+        # mono space font for text box
+        self.text_box.configure(font='TkFixedFont')
+
+        # add button to clear the log
+        button_clear = ttk.Button(self, text="Log leeren", command=lambda: self.text_box.delete(1.0, tk.END))
+        button_clear.pack(side="left", padx=10, pady=10)
+
+        # debug checkbox
+        self.do_debug = tk.IntVar()
+        self.check_debug = tk.Checkbutton(self, text="debug", variable=self.do_debug)
+        self.check_debug.pack(side="right", padx=10)
+        self.do_debug.trace_add("write", self.update_log_levels)
+
+        # Set the initial log level
+        self.do_debug.set(0)  # default to info
+
+        # Create ui text widget Logger
+        text_handler = TextHandler(self.text_box)
+        text_handler.setFormatter(logging.Formatter('%(levelname)s: %(message)s'))
+        logger.addHandler(text_handler)
+
+
 def main():
+    # root
     root = tk.Tk()
-    tabControl = ttk.Notebook(root)
-    ui_name = pathlib.Path(__file__).stem
+    ui_name = Path(__file__).stem
     root.title(ui_name)
     root.option_add('*tearOff', 'FALSE')
-    tab1 = converterUI(tabControl)
-    # tab2 = ttk.Frame(tabControl)
-    tab3 = databaseExtractorUI(tabControl)
-    tabControl.add(tab1, text="Meldelisten-Konverter")
-    # tabControl.add(tab2, text="PPC-Konverter")
-    tabControl.add(tab3, text="Ergebnisse auslesen")
-    tabControl.pack(expand=1, fill="both")
+
+    # tab control
+    tab_control = ttk.Notebook(root)
+    tab1 = XLSXConverterFrame(tab_control)
+    tab2 = PPCConverterFrame(tab_control)
+    tab3 = ResultExtractorFrame(tab_control)
+    tab_control.add(tab1, text="Meldelisten-Konverter")
+    tab_control.add(tab2, text="PPC-Konverter")
+    tab_control.add(tab3, text="Ergebnisse auslesen")
+
+    log_frame = LogFrame(root)
+    tab_control.pack(side="top", fill="both", expand=True)
+    log_frame.pack(side="top", fill="both", expand=True)
+
     root.mainloop()
 
 

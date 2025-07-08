@@ -1,19 +1,22 @@
-from dataclasses import dataclass
 import datetime
-from pathlib import Path
+import logging
 import traceback
-from typing import Any, Dict, List, Optional
 import xml.etree.ElementTree as ET
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
 
 from pypdf import PdfReader
 
-from fsklib.model import (
-    Gender, Club, Person, Couple, Team,
-    Category, CategoryType, CategoryLevel,
-    ParticipantBase, ParticipantSingle, ParticipantCouple, ParticipantTeam
-)
+from fsklib.model import (Category, CategoryLevel, CategoryType, Club, Couple,
+                          Gender, ParticipantBase, ParticipantCouple,
+                          ParticipantSingle, ParticipantTeam, Person, Team)
 from fsklib.odf.xml import OdfUpdater
 from fsklib.utils.common import normalize_string
+from fsklib.utils.logging_helper import get_logger
+
+logger = get_logger(__name__, __file__)
+logger.setLevel(logging.INFO)
 
 
 @dataclass
@@ -21,6 +24,7 @@ class PPC:
     participant: ParticipantBase
     elements_short: List[str]
     elements_long: List[str]
+    path: Path
 
 
 class PdfParserFunctionBase:
@@ -53,36 +57,50 @@ class PdfParserFunctionBase:
                 cat_type = CategoryType.SINGLES
                 cat_gender = Gender.FEMALE
 
-        return Category(cat_name, cat_type, CategoryLevel.NOTDEFINED, cat_gender, 0)
+        return Category(cat_name, cat_type, CategoryLevel.NOTDEFINED, cat_gender, number=0)
 
     @staticmethod
-    def _guess_club(club_name) -> Club:
-        return Club(club_name, "TODO", "TODO")
+    def is_field_valid(name: str, fields) -> bool:
+        if isinstance(fields, dict) and name in fields and isinstance(fields[name], dict) and "/V" in fields[name] and fields[name]["/V"]:
+            return True
+        return False
+
+    @staticmethod
+    def get_field_value(name: str, fields, default_value=None) -> Optional[Any]:
+        if PdfParserFunctionBase.is_field_valid(name, fields):
+            return fields[name]["/V"]
+        return default_value
+
+    @staticmethod
+    def _guess_club(name: str, fields) -> Club:
+        return Club(PdfParserFunctionBase.get_field_value(name, fields, ""), "TODO", "TODO")
 
 
 class PdfParserFunctionDeu(PdfParserFunctionBase):
-    def __call__(self, fields: Optional[Dict[str, Any]], fake_id=False):
-        cat = self._guess_category_from_name(fields["Kategorie"]["/V"])
-        club = self._guess_club(fields["Verein"]["/V"])
+    def __call__(self, path: Path, fields: Optional[Dict[str, Any]], fake_id=False):
+        cat = Category("Dummy", CategoryType.SINGLES, CategoryLevel.SENIOR, Gender.FEMALE)
+        if self.is_field_valid("Kategorie", fields):
+            cat = self._guess_category_from_name(self.get_field_value("Kategorie", fields))
+        club = self._guess_club("Verein", fields)
         if fake_id:
-            id = 0
+            id = "0"
         else:
-            id = int(fields["ID"])
+            id = self.get_field_value("ID", fields, "0")
 
         participant: ParticipantBase
         if cat.type is CategoryType.SYNCHRON:
-            team_name = fields["Vorname"]["/V"] if fields["Vorname"]["/V"] else fields["Name"]["/V"]
+            team_name = fields["Vorname"]["/V"] if fields["Vorname"]["/V"] else fields["Nachname"]["/V"]
             team = Team(id, team_name, club)
             participant = ParticipantTeam(team, cat)
         else:
-            person = Person(id, fields["Name"]["/V"], fields["Vorname"]["/V"], cat.gender, datetime.time(), club)
+            person = Person(id, fields["Vorname"]["/V"], fields["Nachname"]["/V"], cat.gender, datetime.date.today(), club)
             if cat.type in (CategoryType.WOMEN, CategoryType.MEN, CategoryType.SINGLES):
-                participant = ParticipantSingle(person, cat)
+                participant = ParticipantSingle(cat, person)
             elif cat.type in (CategoryType.PAIRS, CategoryType.ICEDANCE):
-                partner_club = self._guess_club(fields["Partner-Verein"]["/V"])
+                partner_club = self._guess_club("Partner-Verein", fields)
                 partner = Person(
                     0 if fake_id else fields["Partner-ID"]["/V"],
-                    fields["Partner-Name"]["/V"],
+                    fields["Partner-Nachname"]["/V"],
                     fields["Partner-Vorname"]["/V"],
                     cat.gender, datetime.time(), partner_club)
                 # fix gender
@@ -103,12 +121,12 @@ class PdfParserFunctionDeu(PdfParserFunctionBase):
                 if element:
                     element_list.append(element)
 
-        return PPC(participant, elements_short, elements_long)
+        return PPC(participant, elements_short, elements_long, path)
 
 
 class PdfParserFunctionBev(PdfParserFunctionDeu):
-    def __call__(self, fields: Optional[Dict[str, Any]], fake_id=True):
-        return super().__call__(fields, fake_id)
+    def __call__(self, path: Path, fields: Optional[Dict[str, Any]], fake_id=True):
+        return super().__call__(path, fields, fake_id)
 
 
 class PdfParser:
@@ -119,33 +137,33 @@ class PdfParser:
         try:
             reader = PdfReader(file_path)
         except Exception:
-            print(f"Error while reading pdf file: {file_path}")
-            traceback.print_exc()
-            print()
+            logger.debug(f"Error while reading pdf file: {file_path}")
+            logger.debug(traceback.format_exc())
             return None
 
         fields = reader.get_fields()
         try:
-            return self.function(fields)
+            return self.function(file_path, fields)
         except Exception:
-            print(f"Error while parsing file: {file_path}")
-            traceback.print_exc()
-            print()
+            logger.debug(f"Error while parsing file: {file_path}")
+            logger.debug(traceback.format_exc())
 
         return None
 
-    def parse_multiple(self, file_paths: List[Path]) -> List[PPC]:
+    def parse_multiple(self, file_paths: List[Path]) -> Tuple[List[PPC], List[Path]]:
         ppcs: List[PPC] = []
+        file_paths_with_error: List[Path] = []
 
         for file_path in file_paths:
             ppc = self.parse(file_path)
             if ppc is None:
-                continue
-            ppcs.append(ppc)
+                file_paths_with_error.append(file_path)
+            else:
+                ppcs.append(ppc)
 
-        return ppcs
+        return ppcs, file_paths_with_error
 
-    def ppcs_parse_dir(self, directory: Path, recursive=False) -> List[PPC]:
+    def ppcs_parse_dir(self, directory: Path, recursive=False) -> Tuple[List[PPC], List[Path]]:
         if not directory.is_dir():
             return []
 
@@ -165,25 +183,105 @@ class PpcOdfUpdater(OdfUpdater):
                  override=False) -> None:
         super().__init__(odf_xml_path, output_path, suffix, override)
 
+    def find_singles_ppcs(self, ppcs: List[PPC], id: str, participant: ET.Element) -> List[PPC]:
+        xml_name = normalize_string(participant.attrib["PrintName"])
+        xml_first_name = normalize_string(participant.attrib["GivenName"])
+        xml_last_name = normalize_string(participant.attrib["FamilyName"])
+        find_result = []
+        for ppc in ppcs:
+            if not isinstance(ppc.participant, ParticipantSingle):
+                continue
+            par: ParticipantSingle = ppc.participant
+            ppc_name = par.get_normalized_name()
+            ppc_name_reverse = par.get_normalized_name(reverse=True)
+            # id and (first name or last name matches)
+            if id and id == par.person.id and (
+                    xml_first_name in ppc_name or
+                    xml_last_name in ppc_name or
+                    normalize_string(par.person.first_name) in xml_name or
+                    normalize_string(par.person.family_name) in xml_name):
+                find_result.append(ppc)
+            # full name (e.g. maxmueller) or reverse (e.g. muellermax) matches
+            elif xml_name in [ppc_name, ppc_name_reverse]:
+                find_result.append(ppc)
+        return find_result
+
+    def find_couples_ppcs(self, ppcs: List[PPC], id: str, participant: ET.Element) -> List[PPC]:
+        # TODO
+        return []
+
+    def find_sys_ppcs(self, ppcs: List[PPC], id: str, participant: ET.Element) -> List[PPC]:
+        # TODO
+        return []
+
     def update(self, ppcs: List[PPC]) -> None:
-        ppc_map: Dict[str, PPC] = {ppc.participant.get_normalized_name(): ppc for ppc in ppcs}
-        count = 0
         if not self.root:
+            logger.error("Read xml file before updating it. Use `read_xml()` or `with Updater`")
             return
 
-        for par in self.root.findall(".//Participant"):
+        # check Odf document type to find relevant ppc files
+        if "DocumentType" not in self.root.attrib:
+            logger.error("No ODF document type found. -> Invalid odf input format.")
+            return
+
+        is_teams = self.root.attrib["DocumentType"].startswith("DT_PARTIC_TEAMS")
+        is_singles = not is_teams
+        par_type = "Team" if is_teams else "Participant"
+        used_ppcs = []
+        skipped_participants_no_event = []
+        skipped_participants_has_ppc = []
+        skipped_participants_no_ppc = []
+        skipped_participants_ambiguous = []
+
+        for par in self.root.findall(f".//{par_type}"):
+            discipline = par.find("./Discipline")
+            events = par.findall(".//RegisteredEvent")
             name = par.attrib["PrintName"]
-            sname = normalize_string(name)
-            if sname not in ppc_map:
-                print(f"Unable to find PPC for: {name}")
+            if discipline is None or not events:
+                logger.warning(f"Skip participant {name}. Not registered in any event.")
+                skipped_participants_no_event.append(name)
                 continue
+            for event in events:
+                xml_id = discipline.attrib["IFId"].strip()
+                name = xml_id + " - " + name
+                rsc = event.attrib["Event"]
+                has_ppc = event.find("./EventEntry[@Code='ELEMENT_CODE_FREE']") is not None
 
-            print(f"Found PPC for: {name}")
-            count += 1
+                if has_ppc:
+                    logger.info("Skip participant %s. Already found ppc entries in DT_PARTIC", name)
+                    skipped_participants_has_ppc.append(f"{name} - {rsc}")
+                    continue
 
-            event = par.find(".//RegisteredEvent")
-            if event is not None:
-                ppc = ppc_map[sname]
+                if is_singles:
+                    if CategoryType.SINGLES.ODF() not in rsc:
+                        continue
+                    find_ppcs = self.find_singles_ppcs
+                elif CategoryType.SYNCHRON in rsc:
+                    find_ppcs = self.find_sys_ppcs
+                else:
+                    find_ppcs = self.find_couples_ppcs
+
+                relevant_ppcs = find_ppcs(ppcs, xml_id, par)
+
+                if not relevant_ppcs:
+                    club = par.find(".//EventEntry[@Code='CLUB'][@Pos='2']").attrib["Value"]
+                    organisation = par.attrib["Organisation"] if "Organisation" in par.attrib else ""
+                    logger.error(f"Unable to find PPC for: {name} ({organisation} | {club})")
+                    skipped_participants_no_ppc.append(f"{name} - {rsc}")
+                    continue
+
+                if len(relevant_ppcs) > 1:
+                    logger.warning(f"Ambiguous ppcs found for: {name}")
+                    for ppc in relevant_ppcs:
+                        logger.warning(ppc.path)
+                    skipped_participants_ambiguous.append(f"{name} - {rsc}")
+                    continue
+
+                assert len(relevant_ppcs) == 1
+
+                logger.info("Found PPC for: %s", name)
+
+                ppc = relevant_ppcs[0]
                 for element_list, odf_segment_name in zip(
                             [ppc.elements_short, ppc.elements_long],
                             ['ELEMENT_CODE_SHORT', 'ELEMENT_CODE_FREE']
@@ -199,12 +297,34 @@ class PpcOdfUpdater(OdfUpdater):
 
                         ET.SubElement(event, "EventEntry", attrib)
 
+                used_ppcs.append(ppc)
+
+        # check for unused ppcs
+        unused_ppcs = {ppc.path for ppc in ppcs} - {ppc.path for ppc in used_ppcs}
+        if unused_ppcs:
+            logger.warning("Unused files:")
+            for ppc in unused_ppcs:
+                logger.warning(ppc.name)
+
+        logger.info("-" * 40)
+        logger.info("ODF Update Summary")
+        logger.info("Used PPCs: %d", len(used_ppcs))
+        logger.info("Skipped participants with no valid PPC: %d", len(skipped_participants_no_ppc))
+        logger.info("Skipped participants with ambiguous PPC files: %d", len(skipped_participants_ambiguous))
+        logger.info("Skipped participants with existing PPC entries in DT_PARTIC: %d", len(skipped_participants_has_ppc))
+        logger.info("Skipped participants with no event in DT_PARTIC: %d", len(skipped_participants_no_event))
+
 
 if __name__ == '__main__':
-    top_dir = Path('./BM24/PPCS/all/')
-    parser = PdfParser(PdfParserFunctionBev())
-    ppcs_list = parser.ppcs_parse_dir(top_dir, recursive=True)
+    top_dir = Path('./KBB25/PPC/')
+    parser = PdfParser(PdfParserFunctionDeu())
+    ppcs_list, file_paths_with_error = parser.ppcs_parse_dir(top_dir, recursive=True)
 
-    odf_file_name = Path("BM24/DT_PARTIC.xml")
+    if file_paths_with_error:
+        logger.error("Unable to parse following files:")
+        for file_path in file_paths_with_error:
+            logger.error(file_path.name)
+
+    odf_file_name = Path("KBB25/DT_PARTIC_UPDATE_25-03-07_00-32-36.xml")
     with PpcOdfUpdater(odf_file_name) as updater:
         updater.update(ppcs_list)
