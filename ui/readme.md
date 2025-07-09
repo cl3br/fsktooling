@@ -15,6 +15,8 @@ welches vom FS Manager gelesen werden kann.
     - für nutzerspezifische Kategorien
         * es kann ein beliebieger, maximal 6-stelliger Name (nur Großbuchstaben) angegeben werden
         * es ist eine Setup-Datei notwendig, um diese in FSM zu nutzen (siehe 3. Im FS Manager -> Kategorien einlesen)
+    - für nutzerspezifische Vereine
+        * siehe `./masterData/csv/README.md`
 2. Im DEUMeldeformularKonverter
     - Excel-Datei auswählen
     - auf konvertieren klicken
@@ -25,9 +27,10 @@ welches vom FS Manager gelesen werden kann.
     - Nationen aus DEUMeldeformularKonverter einlesen
         * Nations > Import
         * `./masterData/FSM/nations-DEU-Landesverbaende.xml`
-    - Clubs aus DEUMeldeformularKonverter einlesen
+    - Clubs aus DEUMeldeformularKonverter einlesen (optional)
         * Clubs > Import
         * `./masterData/FSM/clubs-DEU.xml`
+        * dieser Schritt ist nicht zwingend erforderlich, da die Vereine auch beim Import der Personen hinzugefügt werden
     - Kategorien einlesen
         * Time Schedule > "Import Categories / Segments"
         * erzeugte `DT_PARTIC.xml` auswählen

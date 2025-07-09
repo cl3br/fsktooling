@@ -7,12 +7,13 @@
     - couples can participate in multiple categories
     - support for solo dance starting from FSM 1.8.9 ("solo" must be part of the category name)
     - convert couples with unkwown ids (e.g. 888888 or 999999)
+    - custom clubs can be added via a custom club csv file (`masterData/csv/club*.csv`)
 - UI
     - add PPC converter
     - show log messages for all frames
     - make log messages copyable
     - advanced log options (clear log, show debug messages)
-    - add port option for data base connection (result extraction)
+    - add port option for data base connection in result extraction
 - misc
     - update clubs and officials for season 24/25
     - crop flags for website to a common width
