@@ -125,7 +125,7 @@ class XLSXConverterFrame(tk.Frame):
         club_merged.unlink(missing_ok=True)
 
         logger.info("Suche nach weiteren Clubs...")
-        club_paths = set((master_data_dir() / "csv").glob("club*"))
+        club_paths = set((master_data_dir() / "csv").glob("club*.csv"))
         club_paths_not_std = club_paths.difference(set((club_deu_csv,)))
 
         if club_paths_not_std:
