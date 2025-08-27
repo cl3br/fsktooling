@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.4.1
+- converter
+    - add code of category (RSC) in participants.csv
+
 ## v0.4.0
 - converter
     - accept more category types: ISU category names or ODF/RSC abbreviations

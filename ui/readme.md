@@ -20,7 +20,7 @@ welches vom FS Manager gelesen werden kann.
 2. Im DEUMeldeformularKonverter
     - Excel-Datei auswählen
     - auf konvertieren klicken
-    - neben dem ausgewählten Meldeformular werden die ODF-Dateien `DT_PARTIC.xml` und `DT_PARTIC_TEAM.xml` generiert
+    - neben dem ausgewählten Meldeformular werden Zwischendateinen im 'csv' Unterverzeichnis und die ODF-Dateien `DT_PARTIC.xml` und `DT_PARTIC_TEAM.xml` generiert
 3. Im FS Manager
     - neue Datenbank erstellen
     - Elemente aus FSM masterData einlesen
@@ -45,6 +45,11 @@ welches vom FS Manager gelesen werden kann.
                 - anschließend auf der linken Seite im Wettbewerb > Custom Setup > wähle importiertes Parameter-Set aus
                 - Speichern
             + mit dem Einlesen der Kategorien beginnen
+        * Kategorien umbenennen: Die Kategorienamen können nicht direkt übernommen werden. Der Umweg ist wie folgt: 
+            Im 'csv' Unterverzeichnis findet sich die Datei 'participants.csv'. Dort findest du die Zuordnung zwischen 
+            Kategorienamen und Code of category. Im FSM die Category auswählen, den 'code of category' rauskopieren und in
+            'participants.csv' nach diesm code suchen, um den entsprechenden Kategorienamen zu ermitteln. Diesen dann kopieren 
+            und im FSM unter Name of Category einfügen und 'save' drücken.   
     - Personen einlesen
         * People > Import > Initial Download (complete)
         * erzeugte `DT_PARTIC.xml` auswählen
