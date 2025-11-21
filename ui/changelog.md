@@ -6,6 +6,7 @@
     - add code of category (RSC) in participants.csv
 - misc
     - update officials for season 25/26
+    - update to Python 3.13
 
 ## v0.4.0
 - converter
