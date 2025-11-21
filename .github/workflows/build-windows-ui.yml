@@ -28,23 +28,9 @@ jobs:
         run: |
           ui\package.bat
 
-      - name: Set version from tag
-        run: echo "VERSION=${{ github.ref_name }}" >> $GITHUB_ENV
-
-      - name: Rename zip to include version
-        shell: pwsh
-        run: |
-          $src = "ui/DEUMeldeformularKonverter.zip"
-          $dst = "ui/DEUMeldeformularKonverter_${env:VERSION}.zip"
-          if (Test-Path $src) {
-              Move-Item -LiteralPath $src -Destination $dst
-          } else {
-              Write-Error "Source file not found: $src"
-              exit 1
-          }
-
       - name: Upload Release
         uses: actions/upload-artifact@v4
         with:
-          name: DEUMeldeformularKonverter ${{ env.VERSION }}
-          path: ui/DEUMeldeformularKonverter_${{ env.VERSION }}.zip
+          name: DEUMeldeformularKonverter_${{ github.ref_name }}
+          path: ui/dist/*
+          if-no-files-found: error
