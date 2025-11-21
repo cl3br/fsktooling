@@ -8,5 +8,5 @@ Die Namen wurden teilweise angepasst, so dass diese vom DEU-Datenassistenten gef
 - Vereine und Landesverbände -> siehe "../csv/readme.md"
 - Offizielle
     * Preisrichter: 10.10.2025
-    * Technische Controller & Spezialisten: 31.10.2024
+    * Technische Controller & Spezialisten: 08.10.2025
     * Data & Replay-Operatoren: 13.10.2025
