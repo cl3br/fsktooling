@@ -1,0 +1,50 @@
+name: Build Windows UI
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -e .
+
+      - name: Build UI
+        run: |
+          ui\package.bat
+
+      - name: Set version from tag
+        run: echo "VERSION=${{ github.ref_name }}" >> $GITHUB_ENV
+
+      - name: Rename zip to include version
+        shell: pwsh
+        run: |
+          $src = "ui/DEUMeldeformularKonverter.zip"
+          $dst = "ui/DEUMeldeformularKonverter_${env:VERSION}.zip"
+          if (Test-Path $src) {
+              Move-Item -LiteralPath $src -Destination $dst
+          } else {
+              Write-Error "Source file not found: $src"
+              exit 1
+          }
+
+      - name: Upload Release
+        uses: actions/upload-artifact@v4
+        with:
+          name: DEUMeldeformularKonverter ${{ env.VERSION }}
+          path: ui/DEUMeldeformularKonverter_${{ env.VERSION }}.zip
