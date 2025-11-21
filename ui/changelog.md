@@ -2,7 +2,10 @@
 
 ## v0.4.1
 - converter
+    - fix log output if club abbreviation is missing
     - add code of category (RSC) in participants.csv
+- misc
+    - update officials for season 25/26
 
 ## v0.4.0
 - converter
