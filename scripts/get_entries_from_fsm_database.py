@@ -88,7 +88,7 @@ for (cat_id, cat_name, cat_level, cat_type, cat_order) in list(cursor):
             print("%s" % (name))
             club = model.Club(club_name, club_abbr, nation)
             sys_team = model.Team(id, name, club, [])
-            participant = model.ParticipantTeam(sys_team, cat)
+            participant = model.ParticipantTeam(cat, sys_team)
             if fake_start_number:
                 for segment in segments:
                     csv.add_participant_with_segment_start_number(participant, segment, number)
