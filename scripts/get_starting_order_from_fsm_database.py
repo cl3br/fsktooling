@@ -47,7 +47,7 @@ for (seg_id, seg_name, seg_short_name, seg_type, cat_name, cat_level, cat_type, 
         for (id, first_name, last_name, bday, gender, nation, club_name, club_abbr, start_number) in cursor:
             print("%d - %s %s" % (start_number, first_name, last_name))
             club = model.Club(club_name, club_abbr, nation)
-            person = model.Person(id, last_name, first_name, model.Gender.from_value(gender, model.DataSource.FSM), bday, club)
+            person = model.Person(id, first_name, last_name, model.Gender.from_value(gender, model.DataSource.FSM), bday, club)
             participant = model.ParticipantSingle(cat, person, model.Role.ATHLETE)
             csv.add_participant_with_segment_start_number(participant, seg, start_number)
 
@@ -69,8 +69,8 @@ for (seg_id, seg_name, seg_short_name, seg_type, cat_name, cat_level, cat_type, 
             print("%d - %s %s / %s %s" % (start_number, first_name1, last_name1, first_name2, last_name2))
             club1 = model.Club(club_name1, club_abbr1, nation1)
             club2 = model.Club(club_name2, club_abbr2, nation2)
-            partner1 = model.Person(id1, last_name1, first_name1, model.Gender.from_value(gender1, model.DataSource.FSM), bday1, club1)
-            partner2 = model.Person(id2, last_name2, first_name2, model.Gender.from_value(gender2, model.DataSource.FSM), bday2, club2)
+            partner1 = model.Person(id1, first_name1, last_name1, model.Gender.from_value(gender1, model.DataSource.FSM), bday1, club1)
+            partner2 = model.Person(id2, first_name2, last_name2, model.Gender.from_value(gender2, model.DataSource.FSM), bday2, club2)
             couple = model.Couple(partner1, partner2)
             participant = model.ParticipantCouple(cat, couple, model.Role.ATHLETE)
             csv.add_participant_with_segment_start_number(participant, seg, start_number)

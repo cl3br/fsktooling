@@ -44,9 +44,8 @@ for (cat_id, cat_name, cat_level, cat_type, cat_order) in list(cursor):
 
         for (number, (id, first_name, last_name, bday, gender, nation, club_name, club_abbr)) in enumerate(cursor, 1):
             print("%s %s" % (first_name, last_name))
-            club = model.Club(club_name, club_abbr, nation)
-            couple = model.Person(id, last_name, first_name, model.Gender.from_value(gender, model.DataSource.FSM), bday, club)
-            participant = model.ParticipantSingle(cat, couple)
+            person = model.Person(id, first_name, last_name, model.Gender.from_value(gender, model.DataSource.FSM), bday, club)
+            participant = model.ParticipantSingle(cat, person)
             if fake_start_number:
                 for segment in segments:
                     csv.add_participant_with_segment_start_number(participant, segment, number)
@@ -68,8 +67,8 @@ for (cat_id, cat_name, cat_level, cat_type, cat_order) in list(cursor):
             print("%s %s / %s %s" % (first_name1, last_name1, first_name2, last_name2))
             club1 = model.Club(club_name1, club_abbr1, nation1)
             club2 = model.Club(club_name2, club_abbr2, nation2)
-            partner1 = model.Person(id1, last_name1, first_name1, model.Gender.from_value(gender1, model.DataSource.FSM), bday1, club1)
-            partner2 = model.Person(id2, last_name2, first_name2, model.Gender.from_value(gender2, model.DataSource.FSM), bday2, club2)
+            partner1 = model.Person(id1, first_name1, last_name1, model.Gender.from_value(gender1, model.DataSource.FSM), bday1, club1)
+            partner2 = model.Person(id2, first_name2, last_name2, model.Gender.from_value(gender2, model.DataSource.FSM), bday2, club2)
             couple = model.Couple(partner1, partner2)
             participant = model.ParticipantCouple(cat, couple)
             if fake_start_number:
