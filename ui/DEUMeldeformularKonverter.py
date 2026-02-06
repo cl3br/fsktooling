@@ -129,7 +129,7 @@ class XLSXConverterFrame(tk.Frame):
         club_paths_not_std = club_paths.difference(set((club_deu_csv,)))
 
         if club_paths_not_std:
-            logger.info("Weiter Club-CSV-Dateien gefunden:")
+            logger.info("Weitere Club-CSV-Dateien gefunden:")
             for club_path in club_paths_not_std:
                 logger.info(club_path.name)
             merge_csv(club_paths, club_merged, ';')
