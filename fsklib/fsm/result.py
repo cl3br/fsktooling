@@ -68,7 +68,7 @@ def extract(db_connection: mysql.connector.connection, output_file_path, competi
         root = ET.fromstring(odf_message)
         desc = root.find("Competition/ExtendedInfos/SportDescription")
 
-        if not desc:
+        if desc is None:
             continue
 
         cat_name = desc.attrib["EventName"]
