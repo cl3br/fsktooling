@@ -7,7 +7,7 @@ tree = ET.parse(input_path)
 root = tree.getroot()
 
 print("PPC missing for:")
-for par in root.findall(".//Participant"):
+for par in root.findall(".//Participant[@MainFunctionId='AA01']"):
     if par.find(".//EventEntry[@Code='ELEMENT_CODE_FREE']") is not None:
         continue
 
