@@ -129,22 +129,22 @@ def find_file_name_for_participant(participant, file_name_list, find_segment_typ
         if not valid_file_idxs_name or cat_type == 'P' or cat_type == 'D':
             valid_file_idxs_family_name = find_indices_for_full_name(truncated_file_names, given_name, family_name, True)
 
-    valid_file_idxs_name_partner = set()
+    valid_file_idxs_family_name_partner = set()
     if find_name_partner:
         family_name = participant['Name-Partner']
         given_name = participant['Vorname-Partner']
-        valid_file_idxs_name_partner = find_indices_for_full_name(truncated_file_names, given_name, family_name, True)
+        valid_file_idxs_family_name_partner = find_indices_for_full_name(truncated_file_names, given_name, family_name, True)
 
     valid_file_idxs_name_team = set()
     if find_team_name:
         team_name = participant['Team-Name']
         valid_file_idxs_name_team = find_indices_for_matching_search_string(truncated_file_names, team_name)
 
-    valid_file_idxs_names = valid_file_idxs_name.union(valid_file_idxs_name_partner.union(valid_file_idxs_name_team))
+    valid_file_idxs_all_names = valid_file_idxs_name.union(valid_file_idxs_family_name.union(valid_file_idxs_family_name_partner.union(valid_file_idxs_name_team)))
     # find segment
     if find_segment_type:
         valid_file_idxs_segment = set()
-        for valid_file_idx in valid_file_idxs_names:
+        for valid_file_idx in valid_file_idxs_all_names:
             file_name = truncated_file_names[valid_file_idx].upper()
 
             seg = str(participant['Segment-Abk.']).upper()
@@ -169,21 +169,16 @@ def find_file_name_for_participant(participant, file_name_list, find_segment_typ
                     valid_file_idxs_segment.add(valid_file_idx)
                     break
     else:  # find segment type
-        valid_file_idxs_segment = valid_file_idxs_names
+        valid_file_idxs_segment = valid_file_idxs_all_names
 
     # still ambiguous -> try to solve with intersections
     valid_file_idxs = set()
-    if len(valid_file_idxs_segment) > 1:
-        if find_name and valid_file_idxs_name:
+    if len(valid_file_idxs_segment) > 0:
+        if find_name and valid_file_idxs_name and not find_name_partner:
             valid_file_idxs = valid_file_idxs_name
+        if find_name and valid_file_idxs_family_name and find_name_partner and valid_file_idxs_family_name_partner:
             # for pairs, only family name should be sufficient
-            if find_name_partner:
-                valid_file_idxs = valid_file_idxs_family_name
-        if find_name_partner and valid_file_idxs_name_partner:
-            if valid_file_idxs:
-                valid_file_idxs = valid_file_idxs.intersection(valid_file_idxs_name_partner)
-            else:
-                valid_file_idxs = valid_file_idxs_name_partner
+            valid_file_idxs = valid_file_idxs_family_name.intersection(valid_file_idxs_family_name_partner)
         if find_birthday and valid_file_idxs_bday:
             if valid_file_idxs:
                 valid_file_idxs = valid_file_idxs.intersection(valid_file_idxs_bday)
@@ -206,14 +201,14 @@ def find_file_name_for_participant(participant, file_name_list, find_segment_typ
     elif valid_file_count > 1:
         log_string = '\033[35m## ambiguous ##\033[0m ('
         for valid_file_idx in valid_file_idxs:
-            log_string += input_file_names_with_ext[valid_file_idx] + ','
-            files_found.add(input_file_names_with_ext[valid_file_idx])
+            log_string += file_name_list[valid_file_idx] + ','
+            files_found.add(file_name_list[valid_file_idx])
         log_string += ')'
     else:
         # file found
         valid_index = valid_file_idxs.pop()  # there is only one element
-        log_string = '(\033[32m## found ##\033[0m ' + input_file_names_with_ext[valid_index] + ')'
-        files_found.add(input_file_names_with_ext[valid_index])
+        log_string = '(\033[32m## found ##\033[0m ' + file_name_list[valid_index] + ')'
+        files_found.add(file_name_list[valid_index])
 
     name = participant['Name'] + ', ' + participant['Vorname']
     # use team name for couples or teams
