@@ -53,6 +53,7 @@ class PdfParserFunctionBase:
             if contains_any_hint(cat_hint):
                 cat_type = cat_hint.type
                 cat_gender = cat_type.to_gender()
+                break
             else:
                 cat_type = CategoryType.SINGLES
                 cat_gender = Gender.FEMALE
@@ -91,7 +92,7 @@ class PdfParserFunctionDeu(PdfParserFunctionBase):
         if cat.type is CategoryType.SYNCHRON:
             team_name = fields["Vorname"]["/V"] if fields["Vorname"]["/V"] else fields["Nachname"]["/V"]
             team = Team(id, team_name, club)
-            participant = ParticipantTeam(team, cat)
+            participant = ParticipantTeam(cat, team)
         else:
             person = Person(id, fields["Vorname"]["/V"], fields["Nachname"]["/V"], cat.gender, datetime.date.today(), club)
             if cat.type in (CategoryType.WOMEN, CategoryType.MEN, CategoryType.SINGLES):
@@ -105,7 +106,7 @@ class PdfParserFunctionDeu(PdfParserFunctionBase):
                     cat.gender, datetime.time(), partner_club)
                 # fix gender
                 person.gender = Gender.FEMALE
-                participant = ParticipantCouple(Couple(person, partner), cat)
+                participant = ParticipantCouple(cat, Couple(person, partner))
 
         elements_short: List[str] = []
         elements_long: List[str] = []
@@ -236,7 +237,7 @@ class PpcOdfUpdater(OdfUpdater):
         for par in self.root.findall(f".//{par_type}"):
             discipline = par.find("./Discipline")
             events = par.findall(".//RegisteredEvent")
-            name = par.attrib["PrintName"]
+            name = par.attrib["PrintName"] if "PrintName" in par.attrib else par.attrib["Name"] if "Name" in par.attrib else "Unknown"
             if discipline is None or not events:
                 logger.warning(f"Skip participant {name}. Not registered in any event.")
                 skipped_participants_no_event.append(name)
@@ -256,7 +257,7 @@ class PpcOdfUpdater(OdfUpdater):
                     if CategoryType.SINGLES.ODF() not in rsc:
                         continue
                     find_ppcs = self.find_singles_ppcs
-                elif CategoryType.SYNCHRON in rsc:
+                elif CategoryType.SYNCHRON.ODF() in rsc:
                     find_ppcs = self.find_sys_ppcs
                 else:
                     find_ppcs = self.find_couples_ppcs
