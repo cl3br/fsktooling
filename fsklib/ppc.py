@@ -212,8 +212,16 @@ class PpcOdfUpdater(OdfUpdater):
         return []
 
     def find_sys_ppcs(self, ppcs: List[PPC], id: str, participant: ET.Element) -> List[PPC]:
-        # TODO
-        return []
+        xml_name = normalize_string(participant.attrib["Name"])
+        find_result = []
+        for ppc in ppcs:
+            if not isinstance(ppc.participant, ParticipantTeam):
+                continue
+            par: ParticipantTeam = ppc.participant
+            ppc_name = normalize_string(par.team.name)
+            if id and id == par.team.id and xml_name in ppc_name:
+                find_result.append(ppc)
+        return find_result
 
     def update(self, ppcs: List[PPC]) -> None:
         if not self.root:
