@@ -96,7 +96,7 @@ def extract(db_connection: mysql.connector.connection, output_file_path, competi
             if not athletes:
                 # sys team
                 res_desc = result.find("Competitor/Description")
-                if res_desc:
+                if res_desc is not None:
                     a = res_desc.attrib
                     d = [cat_name, check_id(a), check_attribute(a, "TeamName"), "", "", "", "", "", "TN", rank, points]
                     logger.debug(d)

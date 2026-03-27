@@ -42,7 +42,7 @@ class StatisticsOdfUpdater(OdfUpdater):
         return xml_entries
 
     def update_statistics(self) -> None:
-        if not self.root:
+        if self.root is None:
             return
 
         for par in self.root.iter('Participant'):
@@ -50,7 +50,7 @@ class StatisticsOdfUpdater(OdfUpdater):
             sname = str(par.get("GivenName", "").lower() + par.get("FamilyName", "").lower()).strip()
             sname = normalize_string(sname)
             event = par.find("./Discipline/RegisteredEvent[EventEntry]")
-            if event:
+            if event is not None:
                 resp = self.get_pb_from_name(sname)
                 entries = self.parse_response(resp)
                 if entries:
