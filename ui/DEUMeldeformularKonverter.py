@@ -464,8 +464,8 @@ class LogFrame(tk.Frame):
         self.text_box = ScrolledText.ScrolledText(self, state='normal')
         self.text_box.pack(fill="both", expand=True)
 
-        # make text copyable
-        self.text_box.bind("<Key>", lambda e: ctrlEvent(e, self.master))
+        # make text copyable with Ctrl+C
+        self.text_box.bind("<Control-c>", self.copy_to_clipboard)
 
         # mono space font for text box
         self.text_box.configure(font='TkFixedFont')
@@ -487,6 +487,15 @@ class LogFrame(tk.Frame):
         text_handler = TextHandler(self.text_box)
         text_handler.setFormatter(logging.Formatter('%(levelname)s: %(message)s'))
         logger.addHandler(text_handler)
+
+    def copy_to_clipboard(self, event):
+        try:
+            text = self.text_box.get(tk.SEL_FIRST, tk.SEL_LAST)
+            self.master.clipboard_clear()
+            self.master.clipboard_append(text)
+            return "break"
+        except tk.TclError:
+            pass
 
 
 def main():
